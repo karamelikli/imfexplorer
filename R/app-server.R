@@ -1,3 +1,57 @@
+#' Create the session-isolated explorer server
+#'
+#' Create a Shiny server function with an injectable API boundary and one
+#' metadata cache, query state and observer registry for each browser session.
+#'
+#' @param agency_id Character scalar identifying the initial IMF maintainer.
+#' @param api An adapter list supplying `datasets(agency)`, `dimensions(q)`,
+#'   `values(q, dimension)` and `data(q)` functions. Metadata methods must return
+#'   the normalized schemas documented by [imf_adapter()].
+#' @return A function with Shiny's `input`, `output` and `session` arguments.
+#'   The input object supplies controls, the output object receives renderers,
+#'   and the session object manages UI updates and downloads.
+#' @details The initial session requests only the catalogue. Dataset selection
+#'   loads its dimensions and available values. Retrieval validates a single
+#'   query snapshot, refreshes stale availability, and downloads observations
+#'   only after the Retrieve data action and any required acknowledgement.
+#'   Imports retain unavailable codes for correction; results retain their
+#'   original query for stale-result warnings and exports.
+#' @section Session-local helpers:
+#' The returned server creates these private functions for each connection:
+#' \describe{
+#'   \item{\code{notify(text, type)}}{Displays a notification and returns its ID.}
+#'   \item{\code{control_id(i)}}{Returns the generation-specific ID for the
+#'     dimension at one-based position \code{i}.}
+#'   \item{\code{text_or_null(x)}}{Trims an optional character control value,
+#'     returning NULL when it is absent or blank.}
+#'   \item{\code{reset_dataset()}}{Destroys old dimension observers and clears
+#'     dataset-dependent selections, time options, attributes and results.}
+#'   \item{\code{load_catalog(agency, refresh)}}{Loads the catalogue, optionally
+#'     clears the metadata cache, updates error state and returns success.}
+#'   \item{\code{push_values(q, dimensions)}}{Updates the named dimension
+#'     controls from current availability while retaining selections.}
+#'   \item{\code{update_values(q, only_stale)}}{Refreshes all or only stale
+#'     availability for one query snapshot and updates affected controls.}
+#'   \item{\code{select_all_dimension(i)}}{Selects all available codes at the
+#'     dimension's one-based position while retaining flagged codes.}
+#'   \item{\code{choose_dataset(row, restore)}}{Loads a one-row catalogue
+#'     selection, optionally restores a saved query, and returns success.}
+#'   \item{\code{clear_current_query()}}{Resets the query, search and selected
+#'     catalogue row, then returns to dataset navigation.}
+#' }
+#' @section Session-local reactives:
+#' \describe{
+#'   \item{\code{non_time()}}{Returns non-time dimension metadata.}
+#'   \item{\code{filters()}}{Returns canonical current dimension selections.}
+#'   \item{\code{query()}}{Returns a snapshot of identity, filters, active time
+#'     options and attributes once a dataset is selected.}
+#'   \item{\code{query_problem()}}{Returns the first configuration or
+#'     availability issue, or NULL when validation succeeds.}
+#'   \item{\code{plan()}}{Returns a plotting plan once results exist.}
+#' }
+#' @seealso [explorer_app()], [new_query()], [cached()]
+#'
+#' @keywords internal
 explorer_server <- function(agency_id, api) {
   force(api)
   force(agency_id)
@@ -5,14 +59,28 @@ explorer_server <- function(agency_id, api) {
     cache <- new.env(parent = emptyenv())
     rv <- shiny::reactiveValues(
       catalog = NULL, catalog_error = NULL, dataset = NULL,
-      dimensions = NULL, values = list(), value_errors = list(), availability_keys = list(),
+      dimensions = NULL, values = list(), value_errors = list(),
+      availability_keys = list(),
       seed = list(), generation = 0L, results = NULL, result_query = NULL,
       result_dimensions = NULL, result_error = NULL
     )
     clear_observers <- new.env(parent = emptyenv())
     clear_observers$items <- list()
+    # Show a session notification
+    #
+    # @param text Character scalar message to display.
+    # @param type Shiny notification type, such as `"error"` or `"warning"`.
+    # @return The notification ID returned by [shiny::showNotification()].
     notify <- function(text, type = "error") shiny::showNotification(text, type = type, duration = 12)
+    # Create a dataset-generation-specific dimension control ID
+    #
+    # @param i One-based row index in the non-time dimension metadata.
+    # @return A character scalar that avoids reusing a previous dataset's inputs.
     control_id <- function(i) paste0("dim_", rv$generation, "_", i)
+    # Read the selected dataset's non-time dimension metadata
+    #
+    # @return A reactive data frame excluding time dimensions, or an empty
+    #   dimension frame before metadata has loaded.
     non_time <- shiny::reactive({
       d <- rv$dimensions
       if (is.null(d)) {
@@ -20,6 +88,10 @@ explorer_server <- function(agency_id, api) {
       }
       d[!d$is_time, , drop = FALSE]
     })
+    # Read and canonicalize the dimension controls
+    #
+    # @return A reactive named filter list. Pending controls use imported seed
+    #   selections; bound controls provide their current selections.
     filters <- shiny::reactive({
       d <- non_time()
       out <- lapply(seq_len(nrow(d)), function(i) {
@@ -29,9 +101,18 @@ explorer_server <- function(agency_id, api) {
       names(out) <- d$id
       canonical_filters(out)
     })
+    # Snapshot the current query controls
+    #
+    # @return A reactive query list containing exact dataset identity, canonical
+    #   filters, active time options and requested attributes. Suspends until a
+    #   dataset has been selected.
     query <- shiny::reactive({
       shiny::req(rv$dataset)
       mode <- input$time_mode
+      # Normalize an optional time-bound input
+      #
+      # @param x A NULL or scalar character control value.
+      # @return A trimmed character scalar or NULL for an absent or blank value.
       text_or_null <- function(x) if (is.null(x) || !nzchar(trimws(x))) NULL else trimws(x)
       attrs <- if (is.null(input$attributes) || !nzchar(trimws(input$attributes))) {
         character()
@@ -45,6 +126,11 @@ explorer_server <- function(agency_id, api) {
         if (identical(mode, "latest")) input$latest else NULL, attrs
       )
     })
+    # Reset dataset-dependent state and controls
+    #
+    # @return Invisibly NULL after destroying old dimension observers and clearing
+    #   dataset metadata, filters, time options, attributes and retrieved results.
+    #   The agency catalogue and session metadata cache are retained.
     reset_dataset <- function() {
       for (o in clear_observers$items) o$destroy()
       clear_observers$items <- list()
@@ -67,6 +153,12 @@ explorer_server <- function(agency_id, api) {
       shiny::updateNumericInput(session, "latest", value = 12)
       shiny::updateCheckboxInput(session, "broad_ok", value = FALSE)
     }
+    # Load an agency catalogue through the session cache
+    #
+    # @param agency Character scalar identifying the selected agency.
+    # @param refresh Whether to clear the session metadata cache before loading.
+    # @return A logical success flag. Catalogue state and failure messages are
+    #   updated for the current session.
     load_catalog <- function(agency, refresh = FALSE) {
       if (!scalar_text(agency)) {
         notify("Enter an agency ID.")
@@ -79,6 +171,12 @@ explorer_server <- function(agency_id, api) {
       if (!ans$ok) notify(paste("Catalogue request failed:", ans$error))
       ans$ok
     }
+    # Update bound dimension controls without changing selections
+    #
+    # @param q Query snapshot whose selections must be retained.
+    # @param dimensions Character vector of dimension IDs to update.
+    # @return Invisibly NULL after registering server-side choice sources for
+    #   the requested controls, including retained unverified codes.
     push_values <- function(q, dimensions = non_time()$id) {
       d <- non_time()
       for (i in seq_len(nrow(d))) {
@@ -90,6 +188,12 @@ explorer_server <- function(agency_id, api) {
         )
       }
     }
+    # Refresh conditional dimension availability
+    #
+    # @param q Query snapshot used consistently for all availability requests.
+    # @param only_stale Whether to skip already successful, current code lists.
+    # @return Invisibly NULL after updating availability, error and cache-key state
+    #   and refreshing affected controls. Each request excludes its own filter.
     update_values <- function(q = shiny::isolate(query()), only_stale = FALSE) {
       d <- shiny::isolate(non_time())
       vals <- shiny::isolate(rv$values)
@@ -124,6 +228,12 @@ explorer_server <- function(agency_id, api) {
       rv$availability_keys <- keys
       push_values(q, refreshed)
     }
+    # Select every currently available code for one dimension
+    #
+    # @param i One-based row index in the non-time dimension metadata.
+    # @return The selectize update result, or NULL after an availability failure.
+    #   Existing unavailable selections are retained; stale availability is checked
+    #   using the other current dimension filters before selecting all.
     select_all_dimension <- function(i) {
       q <- query()
       dim <- non_time()$id[i]
@@ -149,6 +259,12 @@ explorer_server <- function(agency_id, api) {
         choices = dimension_choices(values, selected), selected = selected, server = TRUE
       )
     }
+    # Activate a dataset and optionally restore a saved query
+    #
+    # @param row A one-row normalized catalogue data frame.
+    # @param restore Optional validated query configuration to restore.
+    # @return A logical success flag after resetting dependent state and loading
+    #   dimensions and code lists for the exact selected version.
     choose_dataset <- function(row, restore = NULL) {
       reset_dataset()
       rv$dataset <- row
@@ -249,6 +365,11 @@ explorer_server <- function(agency_id, api) {
       reset_dataset()
       load_catalog(trimws(input$agency), refresh = TRUE)
     })
+    # Clear the query and return to the catalogue
+    #
+    # @return The navigation update result after resetting dependent state,
+    #   deselecting catalogue rows and clearing dataset search. Loaded catalogue
+    #   metadata and the session cache are retained.
     clear_current_query <- function() {
       reset_dataset()
       shiny::updateTextInput(session, "dataset_search", value = "")
@@ -455,6 +576,11 @@ explorer_server <- function(agency_id, api) {
         if (length(q$attributes)) shiny::p(paste("Attributes:", paste(q$attributes, collapse = ", ")))
       )
     })
+    # Describe the first query validation or availability issue
+    #
+    # @return A reactive character scalar describing an input, availability,
+    #   invalid-code or empty-response issue, or NULL when no problem is found.
+    #   Stale availability is reported as pending automatic retrieval checks.
     query_problem <- shiny::reactive({
       if (is.null(rv$dataset) || is.null(rv$dimensions)) {
         return("Choose a dataset with successfully loaded dimensions.")
@@ -581,6 +707,10 @@ explorer_server <- function(agency_id, api) {
       },
       server = TRUE
     )
+    # Prepare the retrieved result for plotting
+    #
+    # @return A reactive plotting-plan list from [plot_plan()]. Suspends until
+    #   an observation response is available.
     plan <- shiny::reactive({
       shiny::req(rv$results)
       plot_plan(rv$results, rv$result_dimensions)

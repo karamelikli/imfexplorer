@@ -1,3 +1,14 @@
+#' Build the staged IMF explorer interface
+#'
+#' Create the sidebar query summary and the dataset, dimension, time, review,
+#' retrieval and export stages, including session-bound input and output IDs.
+#'
+#' @param agency_id Character scalar identifying the initial IMF maintainer.
+#' @return A Shiny HTML page produced by [bslib::page_sidebar()]. Constructing
+#'   the interface does not retrieve IMF metadata or observations.
+#' @seealso [explorer_server()], [explorer_styles()]
+#'
+#' @keywords internal
 explorer_ui <- function(agency_id) {
   bslib::page_sidebar(
     title = "IMF Explorer",

@@ -7,12 +7,12 @@
 imfexplorer(agency_id = "IMF.STA", launch.browser = interactive())
 }
 \arguments{
-\item{agency_id}{IMF maintainer ID. Defaults to `"IMF.STA"`.}
+\item{agency_id}{IMF maintainer ID. Defaults to \code{"IMF.STA"}.}
 
 \item{launch.browser}{Whether Shiny should open the application in a browser.}
 }
 \value{
-The result of [shiny::runApp()], invisibly after the application exits.
+The result of \code{\link[shiny:runApp]{shiny::runApp()}}, invisibly after the application exits.
 }
 \description{
 Browse versioned datasets, select conditional dimension values, review a
@@ -22,8 +22,8 @@ does not start Shiny or access the network.
 }
 \details{
 Requires imf.data 0.2.0 or later. The initial catalogue is fetched
-  when a browser session connects; dimensions and code lists are loaded only
-  after choosing a dataset. Observation requests require a button click.
+when a browser session connects; dimensions and code lists are loaded only
+after choosing a dataset. Observation requests require a button click.
 }
 \examples{
 if (interactive()) imfexplorer()

@@ -6,17 +6,17 @@ An installable R package for visually discovering IMF datasets and building repr
 
 Requires R >= 4.1 and **imf.data >= 0.2.0**. The adapter was inspected and verified against installed 0.2.0 and the [official documentation](https://pedrobtz.github.io/imf.data/). Earlier versions use a different API and are unsupported.
 
-From R, install dependencies and this source directory:
+Install the package from GitHub using `remotes` (required package dependencies are installed automatically):
 
 ```r
-install.packages(c("imf.data", "shiny", "bslib", "DT", "jsonlite"))
-install.packages("/path/to/imfexplorer", repos = NULL, type = "source")
+install.packages("remotes") # Run once if remotes is not installed
+remotes::install_github("karamelikli/imfexplorer")
 imfexplorer::imfexplorer()
 # Or another agency; keep browser launching under your control:
 imfexplorer::imfexplorer(agency_id = "IMF.STA", launch.browser = FALSE)
 ```
 
-Alternatively install the supplied source archive with `R CMD INSTALL imfexplorer_0.2.3.tar.gz`. A normal R installation uses its configured package library; a restricted environment can pass `--library=/path/to/writable/library`.
+Alternatively, install a local checkout with `install.packages("/path/to/imfexplorer", repos = NULL, type = "source")`, or install the supplied source archive with `R CMD INSTALL imfexplorer_0.2.3.tar.gz`. A normal R installation uses its configured package library; a restricted environment can pass `--library=/path/to/writable/library`.
 
 ## Running the current workspace source
 

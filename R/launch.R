@@ -22,6 +22,18 @@ imfexplorer <- function(agency_id = "IMF.STA", launch.browser = interactive()) {
   invisible(shiny::runApp(explorer_app(agency_id), launch.browser = launch.browser))
 }
 
+#' Construct an IMF explorer Shiny application
+#'
+#' Assemble the interface and server without starting an HTTP server or making
+#' an IMF request. Requests begin only when the appropriate session events run.
+#'
+#' @inheritParams imfexplorer
+#' @param api An injectable adapter list with the methods described in
+#'   [imf_adapter()]. Defaults to the live IMF adapter.
+#' @return A `shiny.appobj` created by [shiny::shinyApp()].
+#' @seealso [explorer_ui()], [explorer_server()], [imfexplorer()]
+#'
+#' @keywords internal
 explorer_app <- function(agency_id = "IMF.STA", api = imf_adapter()) {
   shiny::shinyApp(explorer_ui(agency_id), explorer_server(agency_id, api))
 }

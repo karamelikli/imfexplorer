@@ -7,3 +7,15 @@
 .agents/
 .codex/
 .aws/
+VERIFICATION.md
+.Renviron
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+app_cache/
+.lintr_cache/
+.styler_cache/

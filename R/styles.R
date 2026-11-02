@@ -1,3 +1,12 @@
+#' Create the explorer's embedded interface styles
+#'
+#' Define responsive dimension cards, selection feedback and the normal-flow
+#' results and export layout without external stylesheet requests.
+#'
+#' @return A Shiny HTML `style` tag containing the application's scoped CSS.
+#' @seealso [explorer_ui()]
+#'
+#' @keywords internal
 explorer_styles <- function() {
   shiny::tags$style(shiny::HTML("
     .imf-hidden-filter { display: none; }
