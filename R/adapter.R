@@ -69,8 +69,10 @@ canonical_filters <- function(filters) {
 }
 
 cache_key <- function(kind, q = list(), dimension = NULL) {
+  if (!is.null(dimension)) q$filters <- q$filters[setdiff(names(q$filters), dimension)]
+  # Removing the only filter can leave a named empty list; normalize afterwards
+  # so the own-dimension filter never changes its availability cache key.
   q$filters <- canonical_filters(q$filters)
-  if (!is.null(dimension)) q$filters[[dimension]] <- NULL
   # Serialize named fields, including NULLs: no ambiguous concatenation.
   jsonlite::toJSON(list(kind = kind, agency = q$agency, dataset = q$dataset,
                        version = q$version, dimension = dimension, filters = q$filters),
@@ -86,7 +88,7 @@ cached <- function(cache, key, fetch) {
 
 selection_status <- function(selected, values, error = NULL) {
   if (!is.null(error)) return(list(invalid = character(), message = paste("API failure:", error,
-    "Selections are retained. Retry Update available values.")))
+    "Selections are retained. Retry retrieval or update available values.")))
   invalid <- setdiff(selected, values$code)
   message <- if (length(invalid)) paste("Unavailable selected codes:", paste(invalid, collapse = ", "),
     "\u2014 clear these codes or change other filters, then update availability.") else

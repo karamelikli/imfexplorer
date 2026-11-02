@@ -60,3 +60,10 @@ test_that("choice sources preserve unavailable codes and handle zero-length labe
   expect_identical(unname(dimension_choices(values, c("X", "Y"))), c("X", "Y"))
   expect_match(names(dimension_choices(values, "Y"))[2], "unavailable")
 })
+
+test_that("a sole own-dimension filter has the same availability key as no filters", {
+  q <- new_query("TEST", "A", "1")
+  r <- new_query("TEST", "A", "1", list(REGION = "X"))
+  expect_identical(cache_key("values", q, "REGION"), cache_key("values", r, "REGION"))
+  expect_false(identical(cache_key("values", q, "METRIC"), cache_key("values", r, "METRIC")))
+})

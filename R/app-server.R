@@ -60,21 +60,31 @@ explorer_server <- function(agency_id, api) {
       if (!ans$ok) notify(paste("Catalogue request failed:", ans$error))
       ans$ok
     }
-    push_values <- function(q) {
+    push_values <- function(q, dimensions = non_time()$id) {
       d <- non_time()
       for (i in seq_len(nrow(d))) {
+        if (!d$id[i] %in% dimensions) next
         choices <- dimension_choices(rv$values[[d$id[i]]], q$filters[[d$id[i]]])
         shiny::updateSelectizeInput(session, control_id(i), choices = choices,
                                    selected = q$filters[[d$id[i]]], server = TRUE)
       }
     }
-    update_values <- function(q = shiny::isolate(query())) {
+    update_values <- function(q = shiny::isolate(query()), only_stale = FALSE) {
       d <- shiny::isolate(non_time())
-      vals <- shiny::isolate(rv$values); errs <- list(); keys <- list()
+      vals <- shiny::isolate(rv$values)
+      errs <- shiny::isolate(rv$value_errors); keys <- shiny::isolate(rv$availability_keys)
+      refreshed <- character()
+      if (only_stale && all(vapply(d$id, function(dim) {
+        identical(keys[[dim]], cache_key("values", q, dim)) &&
+          is.null(errs[[dim]]) && !is.null(vals[[dim]])
+      }, logical(1)))) return(invisible(NULL))
       shiny::withProgress(message = "Updating available dimension values", value = 0, {
         for (i in seq_len(nrow(d))) {
           dimension <- d$id[i]
           k <- cache_key("values", q, dimension)
+          if (only_stale && identical(keys[[dimension]], k) &&
+              is.null(errs[[dimension]]) && !is.null(vals[[dimension]])) next
+          refreshed <- c(refreshed, dimension)
           ans <- attempt(cached(cache, k, function() api$values(q, dimension)))
           keys[[dimension]] <- if (ans$ok) k else NULL
           errs[[dimension]] <- ans$error
@@ -83,7 +93,7 @@ explorer_server <- function(agency_id, api) {
         }
       })
       rv$values <- vals; rv$value_errors <- errs; rv$availability_keys <- keys
-      push_values(q)
+      push_values(q, refreshed)
     }
     select_all_dimension <- function(i) {
       q <- query(); dim <- non_time()$id[i]
@@ -131,15 +141,25 @@ explorer_server <- function(agency_id, api) {
         clear_observers[[length(clear_observers) + 1L]] <<- shiny::observeEvent(input[[paste0(id, "_all")]], {
           select_all_dimension(j)
         }, ignoreInit = TRUE)
+        output[[paste0(id, "_selection")]] <- shiny::renderUI({
+          n <- length(filters()[[dim]])
+          shiny::tags$span(class = paste("imf-selection-badge", if (n) "imf-has-selection"),
+            if (n) paste(n, "selected") else "Unrestricted")
+        })
         output[[paste0(id, "_status")]] <- shiny::renderUI({
           current <- query()
           v <- rv$values[[dim]]
           err <- rv$value_errors[[dim]]
           if (is.null(v)) v <- data.frame(code = character())
-          status <- selection_status(current$filters[[dim]], v, err)
           stale <- !identical(rv$availability_keys[[dim]], cache_key("values", current, dim))
-          shiny::tags$div(role = "status", style = if (length(status$invalid) || !is.null(err)) "color:#a12622;" else NULL,
-            status$message, if (stale) shiny::tags$strong(" Availability needs updating for the current filters."))
+          status <- selection_status(current$filters[[dim]], v, err)
+          tone <- if (!is.null(err) || (!stale && length(status$invalid))) "error" else if (stale) "pending" else "ready"
+          message <- if (stale && is.null(err))
+            "Availability is checked automatically on retrieval. Refresh choices to browse matching codes." else status$message
+          shiny::tags$div(class = paste("imf-dimension-status", paste0("imf-status-", tone)),
+            role = "status", shiny::icon(if (tone == "error") "circle-exclamation" else
+              if (tone == "pending") "clock" else "circle-check"), shiny::tags$span(message))
+
         })
       })
       update_values(q)
@@ -181,6 +201,7 @@ explorer_server <- function(agency_id, api) {
         choose_dataset(rv$catalog[i, , drop = FALSE])
     })
     shiny::observeEvent(input$update, { shiny::req(rv$dimensions); update_values() })
+    shiny::observeEvent(input$next_time, bslib::nav_select("stage", "time", session = session))
     # renderUI inputs bind in the browser after the server's output flush.
     # Register remote selectize sources only after that browser acknowledges them.
     shiny::observeEvent(input$dimensions_ready, {
@@ -202,7 +223,7 @@ explorer_server <- function(agency_id, api) {
         choose_dataset(row, cfg)
       })
       if (!result$ok) notify(paste("Import failed:", result$error)) else
-        notify("Configuration restored. Review flagged codes and update availability before retrieving.", "message")
+        notify("Configuration restored. Review your selections; availability will be checked on retrieval.", "message")
     })
     output$catalog_status <- shiny::renderUI({
       if (!is.null(rv$catalog_error)) shiny::tags$p(role = "alert", paste("Catalogue API failure:", rv$catalog_error)) else
@@ -223,22 +244,43 @@ explorer_server <- function(agency_id, api) {
         shiny::p(paste("Agency:", r$agency, "Version:", r$version)),
         if (is.null(rv$dimensions)) shiny::p("Dimensions unavailable. Use refresh to retry."))
     })
+    output$dimension_overview <- shiny::renderUI({
+      if (is.null(rv$dataset)) return(shiny::tags$p("Choose a dataset to see its dimensions."))
+      d <- non_time(); f <- filters()
+      shiny::tagList(
+        shiny::tags$div(class = "imf-dataset-context", readable(rv$dataset$name, rv$dataset$id),
+          shiny::tags$span(paste(rv$dataset$agency, " / ", rv$dataset$version))),
+        shiny::tags$div(class = "imf-selection-metrics",
+          shiny::tags$span(class = "imf-metric", paste(length(f), "of", nrow(d), "dimensions filtered")),
+          shiny::tags$span(class = "imf-metric", paste(sum(lengths(f)), "selected codes"))))
+    })
     output$dimension_controls <- shiny::renderUI({
       d <- non_time()
-      if (is.null(rv$dataset)) return(shiny::p("Choose a dataset first."))
+      if (is.null(rv$dataset)) return(shiny::tags$div(class = "imf-empty-state",
+        shiny::icon("sliders"), shiny::h4("Start with a dataset"),
+        shiny::p("Select a dataset in the first tab to explore its dimensions.")))
       if (is.null(rv$dimensions)) return(shiny::p("Dimensions could not be loaded. Refresh to retry."))
       if (!nrow(d)) return(shiny::p("No non-time dimensions in this dataset."))
       shiny::tagList(shiny::tags$script(shiny::HTML(sprintf(
         "setTimeout(function(){Shiny.setInputValue('dimensions_ready', %d, {priority:'event'});}, 0);",
-        rv$generation))), lapply(seq_len(nrow(d)), function(i) {
+        rv$generation))), shiny::tags$div(class = "imf-dimension-grid", lapply(seq_len(nrow(d)), function(i) {
         id <- control_id(i)
-        shiny::wellPanel(shiny::selectizeInput(id, readable(d$name[i], d$id[i]),
-          choices = shiny::isolate(rv$seed[[d$id[i]]]), selected = shiny::isolate(rv$seed[[d$id[i]]]), multiple = TRUE,
-          options = list(placeholder = "Unrestricted \u2014 search to select codes", maxOptions = 200,
-                         plugins = list("remove_button"))),
-          shiny::actionButton(paste0(id, "_all"), "Select all available"),
-          shiny::actionButton(paste0(id, "_clear"), "Clear selection"), shiny::uiOutput(paste0(id, "_status")))
-      }))
+        title <- if (is.na(d$name[i]) || !nzchar(d$name[i])) d$id[i] else d$name[i]
+        shiny::tags$section(class = "imf-dimension-card", `aria-label` = paste(title, "dimension"),
+          shiny::tags$div(class = "imf-dimension-heading",
+            shiny::tags$div(shiny::tags$h4(title), shiny::tags$code(d$id[i])),
+            shiny::uiOutput(paste0(id, "_selection"))),
+          shiny::tags$label(class = "imf-control-label", `for` = id, "Search and select values"),
+          shiny::selectizeInput(id, NULL,
+            choices = shiny::isolate(rv$seed[[d$id[i]]]), selected = shiny::isolate(rv$seed[[d$id[i]]]),
+            multiple = TRUE, width = "100%",
+            options = list(placeholder = "Type a code or label...", maxOptions = 200,
+                           plugins = list("remove_button"))),
+          shiny::tags$div(class = "imf-dimension-actions",
+            shiny::actionButton(paste0(id, "_all"), "Select all available", icon = shiny::icon("check-double"), class = "btn-sm btn-outline-primary"),
+            shiny::actionButton(paste0(id, "_clear"), "Clear", icon = shiny::icon("xmark"), class = "btn-sm btn-outline-secondary")),
+          shiny::uiOutput(paste0(id, "_status")))
+      })))
     })
     output$summary <- shiny::renderUI({
       if (is.null(rv$dataset)) return(shiny::p("Choose a dataset to begin."))
@@ -260,9 +302,9 @@ explorer_server <- function(agency_id, api) {
       q <- query(); valid <- attempt(validate_query(q, rv$dimensions))
       if (!valid$ok) return(valid$error)
       for (dim in non_time()$id) {
-        if (!is.null(rv$value_errors[[dim]])) return(paste("Availability API failure for", dim, "\u2014 retry Update available values."))
+        if (!is.null(rv$value_errors[[dim]])) return(paste("Availability API failure for", dim, "\u2014 retry retrieval or update available values."))
         if (!identical(rv$availability_keys[[dim]], cache_key("values", q, dim)))
-          return("Selections changed. Click Update available values before retrieval.")
+          return("Availability will be checked automatically when you retrieve data.")
         v <- rv$values[[dim]]
         if (is.null(v)) return(paste("Load available values for", dim))
         invalid <- setdiff(q$filters[[dim]], v$code)
@@ -288,12 +330,20 @@ explorer_server <- function(agency_id, api) {
     # Any query change revokes previous broad-request acknowledgement.
     shiny::observeEvent(query(), shiny::updateCheckboxInput(session, "broad_ok", value = FALSE), ignoreInit = TRUE)
     shiny::observeEvent(input$retrieve, {
-      problem <- query_problem()
-      if (!is.null(problem)) { notify(problem); return() }
+      if (is.null(rv$dataset) || is.null(rv$dimensions)) {
+        notify("Choose a dataset with successfully loaded dimensions."); return()
+      }
       q <- query()
+      basic <- attempt(validate_query(q, rv$dimensions))
+      if (!basic$ok) { rv$result_error <- basic$error; notify(basic$error); return() }
       if (broad_query(q, rv$dimensions) && !isTRUE(input$broad_ok)) {
         notify("Confirm the broad-request warning before retrieving."); return()
       }
+      # Validate a single query snapshot and refresh only stale metadata. No manual
+      # detour or observation request is needed to establish valid selections.
+      update_values(q, only_stale = TRUE)
+      problem <- query_problem()
+      if (!is.null(problem)) { rv$result_error <- problem; notify(problem); return() }
       ans <- shiny::withProgress(message = "Retrieving IMF observations", value = 0.5, attempt(api$data(q)))
       rv$result_error <- ans$error
       if (!ans$ok) { notify(paste("Retrieval failed:", ans$error)); return() }

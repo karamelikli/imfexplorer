@@ -1,3 +1,19 @@
+# Verification — imfexplorer 0.2.1 — 2026-11-02
+
+- Retrieve data now automatically refreshes stale dimension availability, then validates the same query snapshot before requesting observations. Invalid codes, empty availability and API failures remain visible and prevent observation downloads; retrying retrieval retries failed metadata checks.
+- Fresh availability is reused, including after time-only changes. A sole own-dimension filter now produces the same availability cache key as no filters, avoiding unnecessary requests.
+- The selection page uses responsive cards, readable names plus exact IDs, selected-count badges, grouped select-all/clear controls, larger searchable chip inputs, clearer status feedback and a Continue to time options button.
+- `testthat::test_local()`: **167 passing assertions**, zero failures/errors/warnings; 28 offline test cases and one optional live case skipped. The test environment uses a writable temporary Sass cache (`R_USER_CACHE_DIR=/tmp/imfexplorer-r-cache`).
+- `R CMD build .`: passed; source archive `imfexplorer_0.2.1.tar.gz`.
+- Source installation into `/tmp/imfexplorer-library`: passed.
+- `R CMD check --no-manual imfexplorer_0.2.1.tar.gz`: **Status: OK**, no package warnings, errors or notes. Dependencies were installed; the sandbox could not refresh the CRAN index. PDF manual generation was not requested.
+- Real Chrome browser workflow passed against explicitly synthetic fixtures: edited dimension selections proceeded directly through Review to Retrieve without manual availability refresh; search, select-all, individual removal, invalid-code retention, query clearing, time navigation, plotting, all four downloads and JSON restore passed.
+- Selection layout screenshots were inspected at desktop (1440px) and mobile (390px) widths. The mobile page has no horizontal overflow. Preview files are `/tmp/imfexplorer-selection-desktop.png` and `/tmp/imfexplorer-selection-mobile.png`.
+- Live network tests were not repeated for these changes; the actual upstream call arguments remain unchanged. Historical live adapter verification is recorded below. No synthetic data are used by the public launcher.
+- GitHub publishing remains pending authentication as recorded below. An updated local Git snapshot is prepared separately.
+
+---
+
 # Verification — imfexplorer 0.2.0 — 2026-11-02
 
 ## Changes

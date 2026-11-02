@@ -113,3 +113,104 @@ test_that("large explicit selections still trigger the broad-request warning", {
   q$filters <- list(REGION = paste0("R", 1:40), METRIC = paste0("M", 1:40))
   expect_true(broad_query(q, dims))
 })
+
+test_that("retrieval automatically validates changed selections without manual update", {
+  f <- fixture_api()
+  shiny::testServer(explorer_server("TEST", f$api), {
+    session$flushReact()
+    session$setInputs(datasets_rows_selected = 1L, time_mode = "latest", latest = 2)
+    do.call(session$setInputs, stats::setNames(list("X", "index"), c(control_id(1), control_id(2))))
+    expect_match(query_problem(), "automatically")
+    before <- length(f$log$calls)
+    session$setInputs(retrieve = 1L)
+    new_calls <- f$log$calls[seq.int(before + 1L, length(f$log$calls))]
+    expect_identical(vapply(new_calls, `[[`, character(1), "kind"), c("values", "values", "data"))
+    expect_equal(nrow(rv$results), 2L)
+    expect_identical(rv$result_query$filters, list(METRIC = "index", REGION = "X"))
+    expect_null(query_problem())
+    # Repeat retrieval with unchanged filters does not re-request metadata.
+    before <- length(f$log$calls)
+    session$setInputs(retrieve = 2L)
+    expect_equal(length(f$log$calls), before + 1L)
+    expect_identical(tail(f$log$calls, 1)[[1]]$kind, "data")
+    # Time-only edits reuse dimension availability as well.
+    session$setInputs(latest = 3L)
+    before <- length(f$log$calls)
+    session$setInputs(retrieve = 3L)
+    expect_equal(length(f$log$calls), before + 1L)
+    expect_equal(rv$result_query$last_n_obs, 3)
+  })
+})
+
+test_that("automatic availability checks retain invalid codes and prevent downloads", {
+  f <- fixture_api()
+  shiny::testServer(explorer_server("TEST", f$api), {
+    session$flushReact()
+    session$setInputs(datasets_rows_selected = 1L, time_mode = "latest", latest = 2)
+    do.call(session$setInputs, stats::setNames(list("Y", "limited"), c(control_id(1), control_id(2))))
+    session$setInputs(retrieve = 1L)
+    expect_match(rv$result_error, "Unavailable codes for REGION")
+    expect_identical(query()$filters$REGION, "Y")
+    expect_null(rv$results)
+    expect_false(any(vapply(f$log$calls, function(x) identical(x$kind, "data"), logical(1))))
+    # Correct just the invalid selection and retrieve directly again.
+    do.call(session$setInputs, stats::setNames(list("X"), control_id(1)))
+    session$setInputs(retrieve = 2L)
+    expect_equal(nrow(rv$results), 2)
+    expect_null(rv$result_error)
+  })
+})
+
+test_that("automatic availability failures can be retried without manual refresh", {
+  f <- fixture_api()
+  shiny::testServer(explorer_server("TEST", f$api), {
+    session$flushReact()
+    session$setInputs(datasets_rows_selected = 1L, time_mode = "latest", latest = 2)
+    do.call(session$setInputs, stats::setNames(list("X", "index"), c(control_id(1), control_id(2))))
+    f$log$fail_values <- TRUE
+    session$setInputs(retrieve = 1L)
+    expect_match(rv$result_error, "Availability API failure")
+    expect_null(rv$results)
+    expect_identical(query()$filters, list(METRIC = "index", REGION = "X"))
+    f$log$fail_values <- FALSE
+    session$setInputs(retrieve = 2L)
+    expect_equal(nrow(rv$results), 2)
+    expect_null(rv$result_error)
+  })
+})
+
+test_that("broad and malformed queries are checked before automatic API requests", {
+  f <- fixture_api()
+  shiny::testServer(explorer_server("TEST", f$api), {
+    session$flushReact()
+    session$setInputs(datasets_rows_selected = 1L)
+    do.call(session$setInputs, stats::setNames(list("X"), control_id(1)))
+    before <- length(f$log$calls)
+    session$setInputs(retrieve = 1L, broad_ok = FALSE)
+    expect_equal(length(f$log$calls), before)
+    session$setInputs(time_mode = "latest", latest = -1, broad_ok = TRUE, retrieve = 2L)
+    expect_match(rv$result_error, "positive integer")
+    expect_equal(length(f$log$calls), before)
+  })
+})
+
+test_that("one edited dimension refreshes only the other dependent code list", {
+  f <- fixture_api(); messages <- new.env(parent = emptyenv())
+  testthat::local_mocked_bindings(updateSelectizeInput = function(session, inputId,
+      choices = NULL, selected = NULL, ...) {
+    messages[[inputId]] <<- list(choices = choices, selected = selected)
+  }, .package = "shiny")
+  shiny::testServer(explorer_server("TEST", f$api), {
+    session$flushReact()
+    session$setInputs(datasets_rows_selected = 1L, time_mode = "latest", latest = 2)
+    do.call(session$setInputs, stats::setNames(list("X"), control_id(1)))
+    rm(list = ls(messages), envir = messages)
+    before <- length(f$log$calls)
+    session$setInputs(broad_ok = TRUE, retrieve = 1L)
+    calls <- f$log$calls[seq.int(before + 1L, length(f$log$calls))]
+    expect_identical(vapply(calls, `[[`, character(1), "kind"), c("values", "data"))
+    expect_identical(calls[[1]]$dimension, "METRIC")
+    expect_identical(names(messages), control_id(2))
+    expect_identical(query()$filters$REGION, "X")
+  })
+})

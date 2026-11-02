@@ -1,3 +1,9 @@
+# imfexplorer 0.2.1
+
+- Retrieve data automatically validates changed selections, refreshing only stale dimension availability. Manual availability updates remain available for browsing choices.
+- Keep invalid codes and API errors visible; retrying retrieval automatically retries failed availability checks.
+- Redesign dimension selection with responsive cards, selection badges, clearer statuses, search chips and a Continue to time options action.
+
 # imfexplorer 0.2.0
 
 - Rename the public launcher to `imfexplorer()` (replaces `launch_imf_explorer()`).
