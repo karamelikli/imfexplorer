@@ -3,13 +3,16 @@
 - Retrieve data now automatically refreshes stale dimension availability, then validates the same query snapshot before requesting observations. Invalid codes, empty availability and API failures remain visible and prevent observation downloads; retrying retrieval retries failed metadata checks.
 - Fresh availability is reused, including after time-only changes. A sole own-dimension filter now produces the same availability cache key as no filters, avoiding unnecessary requests.
 - The selection page uses responsive cards, readable names plus exact IDs, selected-count badges, grouped select-all/clear controls, larger searchable chip inputs, clearer status feedback and a Continue to time options button.
-- `testthat::test_local()`: **167 passing assertions**, zero failures/errors/warnings; 28 offline test cases and one optional live case skipped. The test environment uses a writable temporary Sass cache (`R_USER_CACHE_DIR=/tmp/imfexplorer-r-cache`).
+- `testthat::test_local()`: **179 passing assertions**, zero failures/errors/warnings; 29 offline test cases and one optional live case skipped. The test environment uses a writable temporary Sass cache (`R_USER_CACHE_DIR=/tmp/imfexplorer-r-cache`).
 - `R CMD build .`: passed; source archive `imfexplorer_0.2.1.tar.gz`.
 - Source installation into `/tmp/imfexplorer-library`: passed.
 - `R CMD check --no-manual imfexplorer_0.2.1.tar.gz`: **Status: OK**, no package warnings, errors or notes. Dependencies were installed; the sandbox could not refresh the CRAN index. PDF manual generation was not requested.
 - Real Chrome browser workflow passed against explicitly synthetic fixtures: edited dimension selections proceeded directly through Review to Retrieve without manual availability refresh; search, select-all, individual removal, invalid-code retention, query clearing, time navigation, plotting, all four downloads and JSON restore passed.
 - Selection layout screenshots were inspected at desktop (1440px) and mobile (390px) widths. The mobile page has no horizontal overflow. Preview files are `/tmp/imfexplorer-selection-desktop.png` and `/tmp/imfexplorer-selection-mobile.png`.
-- Live network tests were not repeated for these changes; the actual upstream call arguments remain unchanged. Historical live adapter verification is recorded below. No synthetic data are used by the public launcher.
+- PI report follow-up: the exact legacy warning is absent from both the workspace server and the normally installed 0.2.1 namespace. The installed namespace passed 12 offline assertions for PI 2.0.0 with exactly PRODUCTION_INDEX=IND, TYPE_OF_TRANSFORMATION=IX, all other dimensions unrestricted, and no time bounds. This verifies app dispatch, not a live unrestricted observation download.
+- Read-only live `list_dimensions("PI", agency_id="IMF.STA", version="2.0.0")` succeeded and confirmed COUNTRY, PRODUCTION_INDEX, TYPE_OF_TRANSFORMATION, FREQUENCY and TIME_PERIOD.
+- Added `run-app.R` to load the workspace functions into a private environment and launch them independently of a previously loaded installed namespace. A mocked launch verified automatic-validation server code; an actual HTTP smoke test returned 200 with the current automatic-validation UI. Stop the old app before using this launcher. The workspace script is excluded from the installable R package.
+- Live observation downloads were not repeated for these changes; the actual upstream call arguments remain unchanged. Historical live adapter verification is recorded below. No synthetic data are used by the public launcher.
 - GitHub publishing remains pending authentication as recorded below. An updated local Git snapshot is prepared separately.
 
 ---

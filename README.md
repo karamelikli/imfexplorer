@@ -18,6 +18,18 @@ imfexplorer::imfexplorer(agency_id = "IMF.STA", launch.browser = FALSE)
 
 Alternatively install the supplied source archive with `R CMD INSTALL imfexplorer_0.2.1.tar.gz`. A normal R installation uses its configured package library; a restricted environment can pass `--library=/path/to/writable/library`.
 
+## Running the current workspace source
+
+If an already running app still shows an old message after you update the package, stop that app first. Restart R to clear its loaded namespace, then launch the installed package again. Installing new files does not replace a running app's functions.
+
+To run this workspace's source directly, independently of any older loaded package, use:
+
+```r
+source("run-app.R")
+```
+
+Run this from the package source directory, or supply the full path to its `run-app.R` file. The script loads functions into a private environment and does not assign them into `.GlobalEnv`. From a terminal, `Rscript run-app.R` also works.
+
 ## Workflow
 
 1. **Dataset:** the session loads only the agency's catalogue. Use **Search datasets** to search across IDs, names, descriptions and versions; select one row. Dimensions and values load for that version only. Enter another agency and click **Load / refresh catalogue** to switch catalogues.
