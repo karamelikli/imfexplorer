@@ -1,0 +1,9 @@
+*.Rcheck/
+*.tar.gz
+*.bundle
+.Rproj.user/
+.Rhistory
+.RData
+.agents/
+.codex/
+.aws/

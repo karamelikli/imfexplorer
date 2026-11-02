@@ -1,0 +1,9 @@
+^\.git$
+^\.agents$
+^\.aws$
+^\.codex$
+^tools$
+^.*\.Rcheck$
+^.*\.tar\.gz$
+^VERIFICATION\.md$
+^.*\.bundle$
