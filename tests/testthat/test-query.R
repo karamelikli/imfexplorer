@@ -12,9 +12,11 @@ test_that("code serializes hostile strings safely without execution", {
 })
 
 test_that("JSON round trips preserve vectors, nulls and exact identities", {
-  for (q in list(new_query("TEST", "A", "1"),
+  for (q in list(
+    new_query("TEST", "A", "1"),
     new_query("TEST", "A", "1", list(REGION = "X"), last_n_obs = 12),
-    new_query("TEST", "B", "2", list(SECTOR = c("S1", "S2")), start_period = "2020-Q1", attributes = "UNIT"))) {
+    new_query("TEST", "B", "2", list(SECTOR = c("S1", "S2")), start_period = "2020-Q1", attributes = "UNIT")
+  )) {
     expect_identical(parse_config(query_json(q)), q)
   }
   expect_error(parse_config('{"schema_version":2}'), "schema")
@@ -33,10 +35,13 @@ test_that("validation rejects conflicting and invalid time options", {
 })
 
 test_that("plot groups by dimensions and units without changing values", {
-  f <- fixture_api(); q <- new_query("T", "A", "1")
-  d <- f$api$data(q); dims <- f$api$dimensions(q)
+  f <- fixture_api()
+  q <- new_query("T", "A", "1")
+  d <- f$api$data(q)
+  dims <- f$api$dimensions(q)
   plan <- plot_plan(d, dims)
-  expect_true(plan$ok); expect_length(plan$groups, 1)
+  expect_true(plan$ok)
+  expect_length(plan$groups, 1)
   expect_identical(d$OBS_VALUE, c(100, 102))
   d <- rbind(d, transform(d, UNIT_MEASURE = "USD"))
   expect_length(plot_plan(d, dims)$groups, 2)

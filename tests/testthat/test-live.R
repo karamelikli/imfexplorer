@@ -4,8 +4,10 @@ test_that("optional live API discovery and narrow versioned data query work", {
   catalog <- api$datasets("IMF.STA")
   cpi <- catalog[catalog$id == "CPI", , drop = FALSE]
   expect_gt(nrow(cpi), 0)
-  q <- new_query("IMF.STA", "CPI", cpi$version[[1]], list(COUNTRY = "USA", INDEX_TYPE = "CPI",
-    COICOP_1999 = "_T", TYPE_OF_TRANSFORMATION = "IX", FREQUENCY = "M"), last_n_obs = 2)
+  q <- new_query("IMF.STA", "CPI", cpi$version[[1]], list(
+    COUNTRY = "USA", INDEX_TYPE = "CPI",
+    COICOP_1999 = "_T", TYPE_OF_TRANSFORMATION = "IX", FREQUENCY = "M"
+  ), last_n_obs = 2)
   dims <- api$dimensions(q)
   expect_true("TIME_PERIOD" %in% dims$id[dims$is_time])
   vals <- api$values(q, "FREQUENCY")

@@ -1,6 +1,6 @@
 Package: imfexplorer
 Title: Visually Explore IMF Datasets with Shiny
-Version: 0.2.2
+Version: 0.2.3
 Authors@R:
     c(person(given = "Huseyin",
              family = "karamelikli",
@@ -17,6 +17,6 @@ BugReports: https://github.com/karamelikli/imfexplorer/issues
 Encoding: UTF-8
 Depends: R (>= 4.1.0)
 Imports: imf.data (>= 0.2.0), shiny (>= 1.8.0), bslib (>= 0.6.0), DT, jsonlite
-Suggests: testthat (>= 3.1.0), roxygen2
+Suggests: testthat (>= 3.1.0), roxygen2, styler, lintr, pkgload
 Config/testthat/edition: 3
 RoxygenNote: 8.0.0

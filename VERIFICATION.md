@@ -1,3 +1,20 @@
+# Verification — imfexplorer 0.2.3 — 2026-11-02
+
+- Moved the package source into the standalone `imfexplorer/` directory. Package files, development tools, tests, documentation, licence and Git metadata are together; historical source archives and `.Rcheck` output remain outside the repository. A parent workspace compatibility launcher still resolves the moved source.
+- Added `imfexplorer.Rproj` with package build settings, UTF-8 and two-space indentation. Open this project before running the RStudio Style active package and Lint package addins.
+- Applied installed styler 1.11.0 to all package/test R files and the development launch/check scripts. A subsequent dry-fail check reports no formatting changes.
+- Added `.lintr` for lintr 3.4.0: default linters, a 120-character limit excluding multiline string bodies, and explicitly allowed Shiny argument names `launch.browser`, `appDir` and `inputId` alongside snake_case and symbols. No entire files or lint categories are disabled.
+- `lintr::lint_package()` and `lintr::lint_dir()` both report **zero findings**. `Rscript tools/check-style.R` passes and does not modify source files.
+- Removed runtime super-assignment by keeping observer handles in an explicit per-session environment. Existing lifecycle, reset, conditional selection and retrieval tests continue to pass.
+- Tests: **179 passing assertions**, zero failures/errors/warnings; 29 offline test cases and one optional live case skipped.
+- Both the parent compatibility launcher and the package-local `run-app.R` were tested with a mocked Shiny runner and resolve the new package directory.
+- `R CMD build imfexplorer`: passed; archive `imfexplorer_0.2.3.tar.gz` is outside the repository directory.
+- `R CMD check --no-manual imfexplorer_0.2.3.tar.gz`: **Status: OK**, zero package errors/warnings/notes. Installed dependencies were used; the sandbox could not refresh the CRAN index. PDF manual generation was not requested.
+- The writable temporary Sass cache was used for checks. Live observation downloads were not repeated for formatting/project organization changes.
+- Initialized the package folder as a Git repository, retaining the prior local source history, with `origin` set to `https://github.com/karamelikli/imfexplorer.git`. HTTPS access currently requires authentication; no GitHub token, configured saved credentials, connected GitHub integration or SSH-agent identity is available.
+
+---
+
 # Verification — imfexplorer 0.2.2 — 2026-11-02
 
 - Put CSV/RDS downloads in a dedicated section below the complete retrieved table and pagination, with spacing and wrapping actions.

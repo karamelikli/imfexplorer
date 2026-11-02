@@ -12,13 +12,15 @@ test_that("the renamed public launcher builds the app without opening a browser"
 })
 
 test_that("select all uses all available codes and preserves flagged selections", {
-  f <- fixture_api(); messages <- list()
-  testthat::local_mocked_bindings(updateSelectizeInput = function(session, inputId,
-      choices = NULL, selected = NULL, server = FALSE, ...) {
+  f <- fixture_api()
+  messages <- list()
+  update_choices <- function(session, inputId, choices = NULL, selected = NULL, server = FALSE, ...) {
     messages[[inputId]] <<- list(choices = choices, selected = selected, server = server)
-  }, .package = "shiny")
+  }
+  testthat::local_mocked_bindings(updateSelectizeInput = update_choices, .package = "shiny")
   shiny::testServer(explorer_server("TEST", f$api), {
-    session$flushReact(); session$setInputs(datasets_rows_selected = 1L)
+    session$flushReact()
+    session$setInputs(datasets_rows_selected = 1L)
     id <- control_id(1)
     do.call(session$setInputs, stats::setNames(list(1L), paste0(id, "_all")))
     expect_setequal(messages[[id]]$selected, c("X", "Y"))
@@ -41,13 +43,15 @@ test_that("select all uses all available codes and preserves flagged selections"
 })
 
 test_that("select all distinguishes empty availability from API failures", {
-  f <- fixture_api(); messages <- list()
+  f <- fixture_api()
+  messages <- list()
   testthat::local_mocked_bindings(updateSelectizeInput = function(session, inputId,
-      choices = NULL, selected = NULL, ...) {
+                                                                  choices = NULL, selected = NULL, ...) {
     messages[[inputId]] <<- selected
   }, .package = "shiny")
   shiny::testServer(explorer_server("TEST", f$api), {
-    session$flushReact(); session$setInputs(datasets_rows_selected = 1L)
+    session$flushReact()
+    session$setInputs(datasets_rows_selected = 1L)
     id <- control_id(1)
     do.call(session$setInputs, stats::setNames(list("Y", "empty"), c(id, control_id(2))))
     do.call(session$setInputs, stats::setNames(list(1L), paste0(id, "_all")))
@@ -65,14 +69,16 @@ test_that("select all distinguishes empty availability from API failures", {
 })
 
 test_that("select all includes code lists larger than selectize's display limit", {
-  f <- fixture_api(); messages <- list()
+  f <- fixture_api()
+  messages <- list()
   f$api$values <- function(q, dimension) normalize_values(data.frame(code = paste0("C", seq_len(350))))
   testthat::local_mocked_bindings(updateSelectizeInput = function(session, inputId,
-      choices = NULL, selected = NULL, ...) {
+                                                                  choices = NULL, selected = NULL, ...) {
     messages[[inputId]] <<- selected
   }, .package = "shiny")
   shiny::testServer(explorer_server("TEST", f$api), {
-    session$flushReact(); session$setInputs(datasets_rows_selected = 1L)
+    session$flushReact()
+    session$setInputs(datasets_rows_selected = 1L)
     id <- control_id(1)
     do.call(session$setInputs, stats::setNames(list(1L), paste0(id, "_all")))
     expect_length(messages[[id]], 350)
@@ -88,9 +94,12 @@ test_that("dataset search does not request metadata and clear query retains the 
     expect_length(f$log$calls, 1L)
     session$setInputs(datasets_rows_selected = 2L)
     expect_identical(rv$dataset$id, "B")
-    catalog <- rv$catalog; count <- length(f$log$calls)
+    catalog <- rv$catalog
+    count <- length(f$log$calls)
     session$setInputs(clear_query = 1L)
-    expect_null(rv$dataset); expect_null(rv$dimensions); expect_null(rv$results)
+    expect_null(rv$dataset)
+    expect_null(rv$dimensions)
+    expect_null(rv$results)
     expect_null(rv$result_query)
     expect_identical(rv$seed, list())
     expect_identical(rv$catalog, catalog)
@@ -195,9 +204,10 @@ test_that("broad and malformed queries are checked before automatic API requests
 })
 
 test_that("one edited dimension refreshes only the other dependent code list", {
-  f <- fixture_api(); messages <- new.env(parent = emptyenv())
+  f <- fixture_api()
+  messages <- new.env(parent = emptyenv())
   testthat::local_mocked_bindings(updateSelectizeInput = function(session, inputId,
-      choices = NULL, selected = NULL, ...) {
+                                                                  choices = NULL, selected = NULL, ...) {
     messages[[inputId]] <<- list(choices = choices, selected = selected)
   }, .package = "shiny")
   shiny::testServer(explorer_server("TEST", f$api), {

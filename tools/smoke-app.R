@@ -14,5 +14,7 @@ if (!is.na(rows) && rows > 2L) {
     data
   }
 }
-shiny::runApp(explorer_app("TEST", api), host = "127.0.0.1", port = 7854,
-              launch.browser = FALSE)
+shiny::runApp(explorer_app("TEST", api),
+  host = "127.0.0.1", port = 7854,
+  launch.browser = FALSE
+)

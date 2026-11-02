@@ -13,7 +13,7 @@ test_that("normalization follows the inspected 0.2.0 schema", {
 test_that("adapter uses exact supported arguments and excludes own filters", {
   seen <- NULL
   testthat::local_mocked_bindings(list_dimension_values = function(dataflow, dimension, filters,
-      agency_id, version) {
+                                                                   agency_id, version) {
     seen <<- as.list(environment())
     data.frame(code = "Y", name = "Label")
   }, .package = "imf.data")
@@ -27,19 +27,26 @@ test_that("adapter uses exact supported arguments and excludes own filters", {
 
 test_that("cache keys canonicalize filters and distinguish query identities", {
   q <- new_query("TEST", "A", "1", list(REGION = c("Y", "X"), METRIC = "index"))
-  r <- q; r$filters <- list(METRIC = "index", REGION = c("X", "Y"))
+  r <- q
+  r$filters <- list(METRIC = "index", REGION = c("X", "Y"))
   expect_identical(cache_key("values", q, "REGION"), cache_key("values", r, "REGION"))
   r$filters$REGION <- "other"
   expect_identical(cache_key("values", q, "REGION"), cache_key("values", r, "REGION"))
   expect_false(identical(cache_key("values", q, "METRIC"), cache_key("values", r, "METRIC")))
   for (field in c("agency", "dataset", "version")) {
-    r <- q; r[[field]] <- "different"
+    r <- q
+    r[[field]] <- "different"
     expect_false(identical(cache_key("values", q, "REGION"), cache_key("values", r, "REGION")))
   }
   expect_false(identical(cache_key("values", q, "REGION"), cache_key("values", q, "METRIC")))
-  cache <- new.env(); n <- 0
-  fetch <- function() { n <<- n + 1; data.frame(code = "X") }
-  cached(cache, "k", fetch); cached(cache, "k", fetch)
+  cache <- new.env()
+  n <- 0
+  fetch <- function() {
+    n <<- n + 1
+    data.frame(code = "X")
+  }
+  cached(cache, "k", fetch)
+  cached(cache, "k", fetch)
   expect_equal(n, 1)
   expect_error(cached(cache, "bad", function() stop("fail")), "fail")
   expect_false(exists("bad", cache))
@@ -55,7 +62,10 @@ test_that("availability distinguishes empty, invalid and failed responses", {
 })
 
 test_that("choice sources preserve unavailable codes and handle zero-length labels", {
-  expect_identical(dimension_choices(normalize_values(data.frame(code = character())), character()), stats::setNames(character(), character()))
+  expect_identical(
+    dimension_choices(normalize_values(data.frame(code = character())), character()),
+    stats::setNames(character(), character())
+  )
   values <- normalize_values(data.frame(code = "X", name = "Label X"))
   expect_identical(unname(dimension_choices(values, c("X", "Y"))), c("X", "Y"))
   expect_match(names(dimension_choices(values, "Y"))[2], "unavailable")

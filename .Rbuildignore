@@ -8,3 +8,7 @@
 ^VERIFICATION\.md$
 ^.*\.bundle$
 ^run-app\.R$
+^.*\.Rproj$
+^\.Rproj\.user$
+^\.lintr$
+^\.styler$

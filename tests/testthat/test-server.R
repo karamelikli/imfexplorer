@@ -82,12 +82,14 @@ test_that("import restores exact version and retains flagged codes", {
 
 test_that("separate sessions have separate caches and application state", {
   f <- fixture_api()
-  for (i in 1:2) shiny::testServer(explorer_server("TEST", f$api), {
-    session$flushReact()
-    expect_null(rv$dataset)
-    session$setInputs(datasets_rows_selected = 1L)
-    expect_null(rv$results)
-  })
+  for (i in 1:2) {
+    shiny::testServer(explorer_server("TEST", f$api), {
+      session$flushReact()
+      expect_null(rv$dataset)
+      session$setInputs(datasets_rows_selected = 1L)
+      expect_null(rv$results)
+    })
+  }
   expect_equal(sum(vapply(f$log$calls, function(x) x$kind == "datasets", logical(1))), 2)
 })
 

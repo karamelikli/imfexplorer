@@ -16,8 +16,9 @@
 #' if (interactive()) imfexplorer()
 imfexplorer <- function(agency_id = "IMF.STA", launch.browser = interactive()) {
   if (!scalar_text(agency_id)) stop("agency_id must be a nonempty string.")
-  if (!is.logical(launch.browser) || length(launch.browser) != 1L || is.na(launch.browser))
+  if (!is.logical(launch.browser) || length(launch.browser) != 1L || is.na(launch.browser)) {
     stop("launch.browser must be TRUE or FALSE.")
+  }
   invisible(shiny::runApp(explorer_app(agency_id), launch.browser = launch.browser))
 }
 

@@ -10,13 +10,13 @@ From R, install dependencies and this source directory:
 
 ```r
 install.packages(c("imf.data", "shiny", "bslib", "DT", "jsonlite"))
-install.packages("/path/to/imf.data.v", repos = NULL, type = "source")
+install.packages("/path/to/imfexplorer", repos = NULL, type = "source")
 imfexplorer::imfexplorer()
 # Or another agency; keep browser launching under your control:
 imfexplorer::imfexplorer(agency_id = "IMF.STA", launch.browser = FALSE)
 ```
 
-Alternatively install the supplied source archive with `R CMD INSTALL imfexplorer_0.2.2.tar.gz`. A normal R installation uses its configured package library; a restricted environment can pass `--library=/path/to/writable/library`.
+Alternatively install the supplied source archive with `R CMD INSTALL imfexplorer_0.2.3.tar.gz`. A normal R installation uses its configured package library; a restricted environment can pass `--library=/path/to/writable/library`.
 
 ## Running the current workspace source
 
@@ -76,15 +76,26 @@ IMF requests are synchronous: loading indicators appear during requests, and a s
 
 ## Development checks
 
+Open `imfexplorer.Rproj` to make this folder the active RStudio package project. The **Style active package** and **Lint package** addins then target this package. Their command-line equivalents are:
+
 ```r
-install.packages(c("testthat", "roxygen2"))
+install.packages(c("testthat", "roxygen2", "styler", "lintr", "pkgload"))
+styler::style_pkg()
+lintr::lint_package()
 testthat::test_local()
 roxygen2::roxygenise()
 ```
 
+The checked-in `.lintr` keeps the default linters, uses a 120-character line limit (excluding multiline string bodies such as embedded CSS), and allows the exact Shiny API argument names `launch.browser`, `appDir`, and `inputId` alongside snake_case. Runtime code and test files remain linted. No entire files or lint categories are disabled.
+
+For a read-only formatting and lint check, run `Rscript tools/check-style.R`. RStudio settings use two-space indentation and UTF-8. Formatting/lint packages are development dependencies only; they are not needed to launch the app.
+
+The Git repository root is this package folder, with `origin` pointing at `https://github.com/karamelikli/imfexplorer.git`. Build archives, `.Rcheck` output, R session files, and IDE state are excluded from Git. After authenticating GitHub access, publish committed changes with `git push --set-upstream origin main`.
+
+
 ```sh
 R CMD build .
-R CMD check --no-manual imfexplorer_0.2.2.tar.gz
+R CMD check --no-manual imfexplorer_0.2.3.tar.gz
 # Optional network-dependent integration tests:
 IMFEXPLORER_LIVE_TESTS=true Rscript -e 'testthat::test_local(filter="live")'
 # Local synthetic browser smoke harness (not IMF results):

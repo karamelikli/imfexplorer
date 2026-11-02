@@ -3,18 +3,32 @@ test_that("PI query with unrestricted country, frequency and time retrieves with
   # against live PI 2.0.0 metadata; observations here are NOT live IMF data.
   seen <- NULL
   api <- list(
-    datasets = function(agency) normalize_datasets(data.frame(
-      agency = agency, id = "PI", version = "2.0.0", name = "Synthetic PI fixture")),
-    dimensions = function(q) normalize_dimensions(data.frame(
-      id = c("COUNTRY", "PRODUCTION_INDEX", "TYPE_OF_TRANSFORMATION", "FREQUENCY", "TIME_PERIOD"),
-      type = c(rep("Dimension", 4), "TimeDimension"))),
-    values = function(q, dimension) normalize_values(data.frame(code = switch(dimension,
-      COUNTRY = c("USA", "CAN"), PRODUCTION_INDEX = "IND", TYPE_OF_TRANSFORMATION = "IX",
-      FREQUENCY = c("A", "M")))),
+    datasets = function(agency) {
+      normalize_datasets(data.frame(
+        agency = agency, id = "PI", version = "2.0.0", name = "Synthetic PI fixture"
+      ))
+    },
+    dimensions = function(q) {
+      normalize_dimensions(data.frame(
+        id = c("COUNTRY", "PRODUCTION_INDEX", "TYPE_OF_TRANSFORMATION", "FREQUENCY", "TIME_PERIOD"),
+        type = c(rep("Dimension", 4), "TimeDimension")
+      ))
+    },
+    values = function(q, dimension) {
+      codes <- switch(dimension,
+        COUNTRY = c("USA", "CAN"),
+        PRODUCTION_INDEX = "IND",
+        TYPE_OF_TRANSFORMATION = "IX",
+        FREQUENCY = c("A", "M")
+      )
+      normalize_values(data.frame(code = codes))
+    },
     data = function(q) {
       seen <<- q
-      data.frame(COUNTRY = "USA", PRODUCTION_INDEX = "IND", TYPE_OF_TRANSFORMATION = "IX",
-        FREQUENCY = "M", TIME_PERIOD = "2024-M01", OBS_VALUE = 123)
+      data.frame(
+        COUNTRY = "USA", PRODUCTION_INDEX = "IND", TYPE_OF_TRANSFORMATION = "IX",
+        FREQUENCY = "M", TIME_PERIOD = "2024-M01", OBS_VALUE = 123
+      )
     }
   )
   shiny::testServer(explorer_server("IMF.STA", api), {
