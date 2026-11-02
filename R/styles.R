@@ -1,6 +1,13 @@
 explorer_styles <- function() {
   shiny::tags$style(shiny::HTML("
     .imf-hidden-filter { display: none; }
+    .imf-results-layout { display: block; flex: 0 0 auto; min-width: 0; }
+    .imf-results-table { display: flow-root; width: 100%; min-width: 0; }
+    .imf-export-section { clear: both; margin: 24px 0; padding-top: 20px; border-top: 1px solid #dce5eb; }
+    .imf-export-section h4 { font-size: 1rem; font-weight: 650; margin-bottom: 12px; }
+    .imf-export-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 12px; }
+    .imf-export-actions .btn { flex: 0 0 auto; }
+
     .imf-selection-page { padding: 12px 8px; }
     .imf-selection-header { padding: 8px 4px 22px; }
     .imf-eyebrow { color: #0f766e; font-size: .72rem; font-weight: 750; letter-spacing: .12em; }

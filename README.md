@@ -16,7 +16,7 @@ imfexplorer::imfexplorer()
 imfexplorer::imfexplorer(agency_id = "IMF.STA", launch.browser = FALSE)
 ```
 
-Alternatively install the supplied source archive with `R CMD INSTALL imfexplorer_0.2.1.tar.gz`. A normal R installation uses its configured package library; a restricted environment can pass `--library=/path/to/writable/library`.
+Alternatively install the supplied source archive with `R CMD INSTALL imfexplorer_0.2.2.tar.gz`. A normal R installation uses its configured package library; a restricted environment can pass `--library=/path/to/writable/library`.
 
 ## Running the current workspace source
 
@@ -84,7 +84,7 @@ roxygen2::roxygenise()
 
 ```sh
 R CMD build .
-R CMD check --no-manual imfexplorer_0.2.1.tar.gz
+R CMD check --no-manual imfexplorer_0.2.2.tar.gz
 # Optional network-dependent integration tests:
 IMFEXPLORER_LIVE_TESTS=true Rscript -e 'testthat::test_local(filter="live")'
 # Local synthetic browser smoke harness (not IMF results):

@@ -51,10 +51,15 @@ explorer_ui <- function(agency_id) {
       bslib::nav_panel("5 \u00b7 Retrieve & export", value = "retrieve",
         shiny::uiOutput("breadth"), shiny::checkboxInput("broad_ok", "I understand this may request many series / observations", FALSE),
         shiny::actionButton("retrieve", "Retrieve data", class = "btn-primary"),
-        shiny::uiOutput("result_status"), DT::DTOutput("results"),
-        shiny::downloadButton("csv", "CSV"), shiny::downloadButton("rds", "RDS"),
-        shiny::helpText("CSV/RDS export the displayed result, including when marked as an earlier query. The script and JSON describe the current query."),
-        shiny::uiOutput("plot_status"), shiny::uiOutput("plot_container"))
+        shiny::tags$div(class = "imf-results-layout",
+          shiny::uiOutput("result_status"),
+          shiny::tags$div(class = "imf-results-table", DT::DTOutput("results", fill = FALSE)),
+          shiny::tags$section(class = "imf-export-section", `aria-label` = "Download retrieved data",
+            shiny::h4("Download data"),
+            shiny::tags$div(class = "imf-export-actions",
+              shiny::downloadButton("csv", "Download CSV"), shiny::downloadButton("rds", "Download RDS")),
+            shiny::helpText("CSV/RDS export the displayed result, including when marked as an earlier query. The script and JSON describe the current query.")),
+          shiny::uiOutput("plot_status"), shiny::uiOutput("plot_container")))
     )
   )
 }

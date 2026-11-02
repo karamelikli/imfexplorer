@@ -1,3 +1,16 @@
+# Verification — imfexplorer 0.2.2 — 2026-11-02
+
+- Put CSV/RDS downloads in a dedicated section below the complete retrieved table and pagination, with spacing and wrapping actions.
+- Disable DT fill sizing for the results table and use a normal block layout that expands with its contents, preventing overlapping controls.
+- Real Chrome layout checks with 120 explicitly synthetic observations passed at 1440px and 390px widths, for page lengths of 10, 25 and 100 rows. Geometry checks confirmed exports start below the complete table wrapper. Browser hit tests confirmed both buttons are unobscured after scrolling.
+- `R CMD build .` passed; archive: `imfexplorer_0.2.2.tar.gz`.
+- `R CMD check --no-manual imfexplorer_0.2.2.tar.gz`: **Status: OK**, with the existing offline tests passing. The optional live test remains skipped by default. A writable temporary Sass cache was used; the sandbox could not refresh the CRAN index, but dependencies were installed and checked successfully.
+- Reproduce the layout test by starting `IMFEXPLORER_SMOKE_ROWS=120 Rscript tools/smoke-app.R` and Chrome on debugging port 9225, then running `node tools/results-layout-smoke.cjs`. Ordinary smoke fixtures still return two synthetic rows.
+- Stop any running app before using `source("run-app.R")` to launch the updated workspace source, or install version 0.2.2 and restart R before launching the installed package.
+- No live observation requests were made for this layout change. GitHub publishing remains pending authentication.
+
+---
+
 # Verification — imfexplorer 0.2.1 — 2026-11-02
 
 - Retrieve data now automatically refreshes stale dimension availability, then validates the same query snapshot before requesting observations. Invalid codes, empty availability and API failures remain visible and prevent observation downloads; retrying retrieval retries failed metadata checks.

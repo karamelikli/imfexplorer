@@ -1,3 +1,7 @@
+# imfexplorer 0.2.2
+
+- Keep CSV/RDS download controls in a separate section below the entire results table and pagination. Use content-based table height so longer pages cannot overlap exports.
+
 # imfexplorer 0.2.1
 
 - Retrieve data automatically validates changed selections, refreshing only stale dimension availability. Manual availability updates remain available for browsing choices.
