@@ -1,6 +1,6 @@
 # imfexplorer
 
-[![Version: 0.2.3](man/figures/badge-version.svg)](DESCRIPTION)
+[![Version: 0.2.4](man/figures/badge-version.svg)](DESCRIPTION)
 [![R: 4.1 or later](man/figures/badge-r.svg)](https://www.r-project.org/)
 [![imf.data: 0.2.0 or later](man/figures/badge-imf-data.svg)](https://pedrobtz.github.io/imf.data/)
 [![License: GPL-3](man/figures/badge-license.svg)](https://www.gnu.org/licenses/gpl-3.0.html)
@@ -33,7 +33,7 @@ remotes::install_github("karamelikli/imfexplorer")
 If you have a package source archive and its required dependencies are already installed, use:
 
 ```r
-install.packages("imfexplorer_0.2.3.tar.gz", repos = NULL, type = "source")
+install.packages("imfexplorer_0.2.4.tar.gz", repos = NULL, type = "source")
 ```
 
 For a local source checkout with automatic dependency installation, use `remotes::install_local("/path/to/imfexplorer")`.

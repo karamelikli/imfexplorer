@@ -1,4 +1,4 @@
-# imfexplorer 0.2.3
+# imfexplorer 0.2.4
 
 - Organize the source as a standalone imfexplorer package repository and RStudio project.
 - Format package, test and development R files with styler and add a project lintr configuration.
