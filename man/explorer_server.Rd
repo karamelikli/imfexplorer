@@ -27,7 +27,9 @@ The initial session requests only the catalogue. Dataset selection
 loads its dimensions and available values. Retrieval validates a single
 query snapshot, refreshes stale availability, and downloads observations
 only after the Retrieve data action and any required acknowledgement.
-Imports retain unavailable codes for correction; results retain their
+Imports retain unavailable codes for correction. Optional exclusion removes
+flagged codes before retrieval and stops if a selected dimension would
+become unrestricted. Results retain their
 original query for stale-result warnings and exports.
 }
 \section{Session-local helpers}{
@@ -45,12 +47,15 @@ dataset-dependent selections, time options, attributes and results.}
 clears the metadata cache, updates error state and returns success.}
 \item{\code{push_values(q, dimensions)}}{Updates the named dimension
 controls from current availability while retaining selections.}
-\item{\code{update_values(q, only_stale)}}{Refreshes all or only stale
+\item{\code{update_values(q, only_stale, update_controls)}}{Refreshes all or only stale
 availability for one query snapshot and updates affected controls.}
 \item{\code{select_all_dimension(i)}}{Selects all available codes at the
 dimension's one-based position while retaining flagged codes.}
 \item{\code{choose_dataset(row, restore)}}{Loads a one-row catalogue
 selection, optionally restores a saved query, and returns success.}
+\item{\code{query_issue(q)}}{Validates availability for an explicit query snapshot.}
+\item{\code{prepare_retrieval(q)}}{Optionally excludes flagged selections,
+rechecks availability, and returns the query, removed codes and any error.}
 \item{\code{clear_current_query()}}{Resets the query, search and selected
 catalogue row, then returns to dataset navigation.}
 }

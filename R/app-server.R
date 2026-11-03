@@ -14,7 +14,9 @@
 #'   loads its dimensions and available values. Retrieval validates a single
 #'   query snapshot, refreshes stale availability, and downloads observations
 #'   only after the Retrieve data action and any required acknowledgement.
-#'   Imports retain unavailable codes for correction; results retain their
+#'   Imports retain unavailable codes for correction. Optional exclusion removes
+#'   flagged codes before retrieval and stops if a selected dimension would
+#'   become unrestricted. Results retain their
 #'   original query for stale-result warnings and exports.
 #' @section Session-local helpers:
 #' The returned server creates these private functions for each connection:
@@ -30,12 +32,15 @@
 #'     clears the metadata cache, updates error state and returns success.}
 #'   \item{\code{push_values(q, dimensions)}}{Updates the named dimension
 #'     controls from current availability while retaining selections.}
-#'   \item{\code{update_values(q, only_stale)}}{Refreshes all or only stale
+#'   \item{\code{update_values(q, only_stale, update_controls)}}{Refreshes all or only stale
 #'     availability for one query snapshot and updates affected controls.}
 #'   \item{\code{select_all_dimension(i)}}{Selects all available codes at the
 #'     dimension's one-based position while retaining flagged codes.}
 #'   \item{\code{choose_dataset(row, restore)}}{Loads a one-row catalogue
 #'     selection, optionally restores a saved query, and returns success.}
+#'   \item{\code{query_issue(q)}}{Validates availability for an explicit query snapshot.}
+#'   \item{\code{prepare_retrieval(q)}}{Optionally excludes flagged selections,
+#'     rechecks availability, and returns the query, removed codes and any error.}
 #'   \item{\code{clear_current_query()}}{Resets the query, search and selected
 #'     catalogue row, then returns to dataset navigation.}
 #' }
@@ -62,7 +67,7 @@ explorer_server <- function(agency_id, api) {
       dimensions = NULL, values = list(), value_errors = list(),
       availability_keys = list(),
       seed = list(), generation = 0L, results = NULL, result_query = NULL,
-      result_dimensions = NULL, result_error = NULL
+      result_dimensions = NULL, result_error = NULL, result_exclusions = character()
     )
     clear_observers <- new.env(parent = emptyenv())
     clear_observers$items <- list()
@@ -145,6 +150,8 @@ explorer_server <- function(agency_id, api) {
       rv$result_query <- fresh$result_query
       rv$result_dimensions <- NULL
       rv$result_error <- NULL
+      rv$result_exclusions <- character()
+      shiny::updateCheckboxInput(session, "exclude_unavailable", value = FALSE)
       rv$generation <- rv$generation + 1L
       shiny::updateRadioButtons(session, "time_mode", selected = "all")
       shiny::updateTextInput(session, "start", value = "")
@@ -192,9 +199,10 @@ explorer_server <- function(agency_id, api) {
     #
     # @param q Query snapshot used consistently for all availability requests.
     # @param only_stale Whether to skip already successful, current code lists.
+    # @param update_controls Whether to send the snapshot selections to the browser.
     # @return Invisibly NULL after updating availability, error and cache-key state
     #   and refreshing affected controls. Each request excludes its own filter.
-    update_values <- function(q = shiny::isolate(query()), only_stale = FALSE) {
+    update_values <- function(q = shiny::isolate(query()), only_stale = FALSE, update_controls = TRUE) {
       d <- shiny::isolate(non_time())
       vals <- shiny::isolate(rv$values)
       errs <- shiny::isolate(rv$value_errors)
@@ -226,7 +234,7 @@ explorer_server <- function(agency_id, api) {
       rv$values <- vals
       rv$value_errors <- errs
       rv$availability_keys <- keys
-      push_values(q, refreshed)
+      if (update_controls) push_values(q, refreshed)
     }
     # Select every currently available code for one dimension
     #
@@ -578,14 +586,14 @@ explorer_server <- function(agency_id, api) {
     })
     # Describe the first query validation or availability issue
     #
-    # @return A reactive character scalar describing an input, availability,
+    # @param q Explicit query snapshot to validate.
+    # @return A character scalar describing an input, availability,
     #   invalid-code or empty-response issue, or NULL when no problem is found.
     #   Stale availability is reported as pending automatic retrieval checks.
-    query_problem <- shiny::reactive({
+    query_issue <- function(q) {
       if (is.null(rv$dataset) || is.null(rv$dimensions)) {
         return("Choose a dataset with successfully loaded dimensions.")
       }
-      q <- query()
       valid <- attempt(validate_query(q, rv$dimensions))
       if (!valid$ok) {
         return(valid$error)
@@ -610,7 +618,46 @@ explorer_server <- function(agency_id, api) {
         }
       }
       NULL
+    }
+    query_problem <- shiny::reactive({
+      if (is.null(rv$dataset)) query_issue(NULL) else query_issue(query())
     })
+    # Prepare one retrieval snapshot, rechecking after each removal.
+    #
+    # @param q Current query snapshot.
+    # @return A list with query, excluded code descriptions and an optional error.
+    #   Never clears a whole selected dimension or trusts a failed metadata call.
+    prepare_retrieval <- function(q) {
+      excluded <- character()
+      repeat {
+        update_values(q, only_stale = TRUE, update_controls = !isTRUE(input$exclude_unavailable))
+        changed <- FALSE
+        if (isTRUE(input$exclude_unavailable)) {
+          for (dim in names(q$filters)) {
+            selected <- q$filters[[dim]]
+            verified <- is.null(rv$value_errors[[dim]]) &&
+              identical(rv$availability_keys[[dim]], cache_key("values", q, dim)) &&
+              !is.null(rv$values[[dim]])
+            keep <- if (verified) intersect(selected, rv$values[[dim]]$code) else character()
+            removed <- setdiff(selected, keep)
+            if (!length(removed)) next
+            if (!length(keep)) {
+              return(list(query = q, excluded = excluded, error = paste(
+                "No verified selected codes remain for", dim,
+                "\u2014 choose an available value or explicitly clear this dimension before retrieval."
+              )))
+            }
+            excluded <- c(excluded, paste0(dim, ": ", paste(removed, collapse = ", ")))
+            q$filters[[dim]] <- keep
+            changed <- TRUE
+            # Refresh before assessing another dimension under the changed query.
+            break
+          }
+        }
+        if (!changed) break
+      }
+      list(query = q, excluded = excluded, error = query_issue(q))
+    }
     output$validation <- shiny::renderUI({
       p <- query_problem()
       shiny::p(if (is.null(p)) "Query is valid. Review the code and proceed to Retrieve & export." else p)
@@ -640,6 +687,7 @@ explorer_server <- function(agency_id, api) {
         notify("Choose a dataset with successfully loaded dimensions.")
         return()
       }
+      rv$result_exclusions <- character()
       q <- query()
       basic <- attempt(validate_query(q, rv$dimensions))
       if (!basic$ok) {
@@ -651,14 +699,19 @@ explorer_server <- function(agency_id, api) {
         notify("Confirm the broad-request warning before retrieving.")
         return()
       }
-      # Validate a single query snapshot and refresh only stale metadata. No manual
-      # detour or observation request is needed to establish valid selections.
-      update_values(q, only_stale = TRUE)
-      problem <- query_problem()
-      if (!is.null(problem)) {
-        rv$result_error <- problem
-        notify(problem)
+      prepared <- prepare_retrieval(q)
+      if (!is.null(prepared$error)) {
+        if (isTRUE(input$exclude_unavailable)) push_values(q)
+        rv$result_error <- prepared$error
+        notify(prepared$error)
         return()
+      }
+      q <- prepared$query
+      rv$result_exclusions <- prepared$excluded
+      if (isTRUE(input$exclude_unavailable)) push_values(q)
+      if (length(prepared$excluded)) {
+        rv$seed <- q$filters
+        notify(paste("Excluded selections:", paste(prepared$excluded, collapse = "; ")), "warning")
       }
       ans <- shiny::withProgress(message = "Retrieving IMF observations", value = 0.5, attempt(api$data(q)))
       rv$result_error <- ans$error
@@ -672,6 +725,9 @@ explorer_server <- function(agency_id, api) {
     })
     output$result_status <- shiny::renderUI({
       shiny::tagList(
+        if (length(rv$result_exclusions)) {
+          shiny::p(role = "status", paste("Excluded selections:", paste(rv$result_exclusions, collapse = "; ")))
+        },
         if (!is.null(rv$result_error)) shiny::p(role = "alert", paste("Latest retrieval failed:", rv$result_error)),
         if (!is.null(rv$results)) {
           count <- series_info(rv$results, rv$result_dimensions)$count

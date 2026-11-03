@@ -112,6 +112,14 @@ explorer_ui <- function(agency_id) {
       ),
       bslib::nav_panel("5 \u00b7 Retrieve & export",
         value = "retrieve",
+        shiny::checkboxInput(
+          "exclude_unavailable", "Exclude unavailable or unverified selections before retrieval", FALSE
+        ),
+        shiny::helpText(paste(
+          "Remaining codes are checked again before retrieval. Excluded codes are reported below.",
+          "If a dimension loses every selected code, choose an available value or explicitly clear it to continue.",
+          "Metadata failures must be resolved before retrieval."
+        )),
         shiny::uiOutput("breadth"),
         shiny::checkboxInput("broad_ok", "I understand this may request many series / observations", FALSE),
         shiny::actionButton("retrieve", "Retrieve data", class = "btn-primary"),

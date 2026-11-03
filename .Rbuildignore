@@ -1,4 +1,5 @@
 ^\.git$
+^\.github$
 ^\.agents$
 ^\.aws$
 ^\.codex$

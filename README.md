@@ -68,6 +68,8 @@ Choose **All periods**, a **Period range**, or **Latest N per series**, then rev
 
 ### 3. Retrieve and export
 
+Optionally enable **Exclude unavailable or unverified selections before retrieval** to remove flagged codes and recheck the remaining query. Excluded codes are listed with the retrieval status. If a dimension has no verified selected codes left, select an available value or explicitly clear it before continuing. Metadata request failures still require a successful retry.
+
 Click **Retrieve data** to download observations. Browse the table, view a time-series plot when supported, and download **CSV** or **RDS** below the table.
 
 ![Retrieved monthly CPI observations, download controls and time-series plot](man/figures/README-results.png)
