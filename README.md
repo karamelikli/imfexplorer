@@ -9,11 +9,40 @@ Explore IMF datasets visually, choose dimension values, and download data throug
 
 ## Install and open
 
-Requires **R 4.1 or later** and **imf.data 0.2.0 or later**. Required package dependencies are installed automatically.
+Requires **R 4.1 or later** and **imf.data 0.2.0 or later**. CRAN and GitHub installation install required dependencies automatically.
+
+### CRAN release
+
+Once the package is accepted and available on CRAN, install the released version with:
+
+```r
+install.packages("imfexplorer")
+```
+
+Until then, use the GitHub installation below.
+
+### GitHub development version
 
 ```r
 install.packages("remotes") # Only needed once
 remotes::install_github("karamelikli/imfexplorer")
+```
+
+### Local source archive
+
+If you have a package source archive and its required dependencies are already installed, use:
+
+```r
+install.packages("imfexplorer_0.2.3.tar.gz", repos = NULL, type = "source")
+```
+
+For a local source checkout with automatic dependency installation, use `remotes::install_local("/path/to/imfexplorer")`.
+
+### Launch
+
+After installing by any of these methods, open the app with:
+
+```r
 imfexplorer::imfexplorer()
 ```
 
