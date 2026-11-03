@@ -2,7 +2,7 @@
 % Please edit documentation in R/styles.R
 \name{explorer_styles}
 \alias{explorer_styles}
-\title{Create the explorer's embedded interface styles}
+\title{Include the explorer's bundled stylesheet}
 \usage{
 explorer_styles()
 }
@@ -10,10 +10,11 @@ explorer_styles()
 A Shiny HTML \code{style} tag containing the application's scoped CSS.
 }
 \description{
-Define responsive dimension cards, selection feedback and the normal-flow
-results and export layout without external stylesheet requests.
+Read the stylesheet distributed in \verb{inst/app/www/} and embed it in the
+application page. No external stylesheet requests or shared Shiny resource
+registrations are needed.
 }
 \seealso{
-\code{\link[=explorer_ui]{explorer_ui()}}
+\code{\link[=explorer_ui]{explorer_ui()}}, \code{\link[=explorer_file]{explorer_file()}}
 }
 \keyword{internal}

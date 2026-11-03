@@ -1,67 +1,32 @@
-#' Create the explorer's embedded interface styles
+#' Resolve a bundled application resource
 #'
-#' Define responsive dimension cards, selection feedback and the normal-flow
-#' results and export layout without external stylesheet requests.
+#' Locate files installed from `inst/`, including when the workspace launcher
+#' loads the application into its private source environment.
+#'
+#' @param ... Character path components below `inst/` in a source checkout,
+#'   or below the installed package directory.
+#' @return An absolute path to an existing resource. Missing resources raise
+#'   an error. Installed and pkgload sessions use [system.file()].
+#' @keywords internal
+explorer_file <- function(...) {
+  root <- get0(".imfexplorer_source_root", envir = environment(explorer_file), inherits = FALSE)
+  if (!is.null(root)) {
+    path <- file.path(root, "inst", ...)
+    if (!file.exists(path)) stop("Bundled application resource not found: ", path)
+    return(normalizePath(path, mustWork = TRUE))
+  }
+  system.file(..., package = "imfexplorer", mustWork = TRUE)
+}
+
+#' Include the explorer's bundled stylesheet
+#'
+#' Read the stylesheet distributed in `inst/app/www/` and embed it in the
+#' application page. No external stylesheet requests or shared Shiny resource
+#' registrations are needed.
 #'
 #' @return A Shiny HTML `style` tag containing the application's scoped CSS.
-#' @seealso [explorer_ui()]
-#'
+#' @seealso [explorer_ui()], [explorer_file()]
 #' @keywords internal
 explorer_styles <- function() {
-  shiny::tags$style(shiny::HTML("
-    .imf-hidden-filter { display: none; }
-    .imf-results-layout { display: block; flex: 0 0 auto; min-width: 0; }
-    .imf-results-table { display: flow-root; width: 100%; min-width: 0; }
-    .imf-export-section { clear: both; margin: 24px 0; padding-top: 20px; border-top: 1px solid #dce5eb; }
-    .imf-export-section h4 { font-size: 1rem; font-weight: 650; margin-bottom: 12px; }
-    .imf-export-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 12px; }
-    .imf-export-actions .btn { flex: 0 0 auto; }
-
-    .imf-selection-page { padding: 12px 8px; }
-    .imf-selection-header { padding: 8px 4px 22px; }
-    .imf-eyebrow { color: #0f766e; font-size: .72rem; font-weight: 750; letter-spacing: .12em; }
-    .imf-selection-header h2 { margin: 8px 0 10px; font-size: 1.8rem; font-weight: 700; letter-spacing: -.035em; }
-    .imf-selection-header p { color: #526477; margin-bottom: 16px; max-width: 760px; }
-    .imf-dataset-context { font-weight: 600; margin-bottom: 12px; overflow-wrap: anywhere; }
-    .imf-dataset-context > span { display: block; color: #68798a; font-size: .8rem; font-weight: 400; margin-top: 4px; }
-    .imf-selection-metrics { display: flex; flex-wrap: wrap; gap: 8px; }
-    .imf-metric { background: #edf3f6; border: 1px solid #dce6eb; border-radius: 20px; padding: 5px 12px; font-size: .8rem; color: #40576b; }
-    .imf-selection-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; background: #edf7f5; border: 1px solid #cce5df; border-radius: 12px; padding: 14px 16px; margin-bottom: 20px; }
-    .imf-selection-toolbar > div { display: flex; align-items: flex-start; gap: 10px; color: #285e55; font-size: .85rem; max-width: 620px; }
-    .imf-selection-toolbar .btn { flex-shrink: 0; font-size: .82rem; }
-    .imf-dimension-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 330px), 1fr)); gap: 18px; align-items: start; }
-    .imf-dimension-card { background: #fff; border: 1px solid #dce5eb; border-radius: 14px; padding: 20px; box-shadow: 0 3px 12px #183b5608; min-width: 0; }
-    .imf-dimension-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 18px; }
-    .imf-dimension-heading h4 { margin: 0 0 7px; font-size: 1rem; font-weight: 650; color: #203b4e; overflow-wrap: anywhere; }
-    .imf-dimension-heading code { color: #667d8c; font-size: .72rem; overflow-wrap: anywhere; }
-    .imf-selection-badge { display: inline-block; border-radius: 20px; background: #f0f3f6; color: #5e7081; padding: 5px 9px; font-size: .72rem; white-space: nowrap; }
-    .imf-has-selection { background: #dcf2eb; color: #0b6751; font-weight: 650; }
-    .imf-control-label { font-size: .8rem; color: #526477; margin-bottom: 7px; }
-    .imf-dimension-card .shiny-input-container { width: 100%; margin-bottom: 12px; }
-    .imf-dimension-card .selectize-control { margin-bottom: 0; }
-    .imf-dimension-card .selectize-input { min-height: 80px; max-height: 190px; overflow-y: auto; border: 1px solid #ccd9e2; border-radius: 9px; box-shadow: none; padding: 10px; line-height: 1.65; }
-    .imf-dimension-card .selectize-input.focus { border-color: #0f766e; box-shadow: 0 0 0 3px #0f766e16; }
-    .imf-dimension-card .selectize-input .item { background: #e9f5f2 !important; color: #145b4d !important; border: 1px solid #cce6dd !important; border-radius: 5px; margin: 2px 4px 3px 0; font-size: .8rem; max-width: 100%; overflow-wrap: anywhere; white-space: normal; }
-    .imf-dimension-card .selectize-dropdown { border: 1px solid #ccd9e2; border-radius: 8px; box-shadow: 0 10px 28px #183b561c; }
-    .imf-dimension-card .selectize-dropdown .option { padding: 9px 12px; white-space: normal; overflow-wrap: anywhere; }
-    .imf-dimension-card .selectize-dropdown .active { background: #edf7f5; color: #164e42; }
-    .imf-dimension-actions { display: flex; flex-wrap: wrap; gap: 8px; padding-bottom: 14px; }
-    .imf-dimension-actions .btn { border-radius: 7px; font-size: .76rem; }
-    .imf-dimension-status { display: flex; align-items: flex-start; gap: 7px; border-top: 1px solid #edf1f5; padding-top: 12px; font-size: .77rem; line-height: 1.55; color: #617587; }
-    .imf-dimension-status > i { margin-top: 3px; flex-shrink: 0; }
-    .imf-status-ready > i { color: #16805f; }
-    .imf-status-error { color: #a12622; }
-    .imf-status-pending { color: #6f674c; }
-    .imf-selection-footer { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 24px 4px 4px; }
-    .imf-selection-footer > span { color: #68798a; font-size: .8rem; }
-    .imf-selection-footer .btn { flex-shrink: 0; }
-    .imf-empty-state { text-align: center; border: 1px dashed #ccd9e2; border-radius: 14px; padding: 42px 20px; color: #617587; }
-    .imf-empty-state > i { font-size: 1.8rem; color: #0f766e; margin-bottom: 15px; }
-    @media (max-width: 767px) {
-      .imf-selection-page { padding: 8px 0; }
-      .imf-selection-header h2 { font-size: 1.5rem; }
-      .imf-selection-toolbar, .imf-selection-footer { align-items: stretch; flex-direction: column; }
-      .imf-dimension-card { padding: 16px; }
-    }
-  "))
+  shiny::includeCSS(explorer_file("app", "www", "imfexplorer.css"))
 }

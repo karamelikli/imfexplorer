@@ -63,12 +63,41 @@ Observation count is the number of returned rows. Series count uses distinct com
 
 The simple base R plot uses separate panels for every complete dimension/unit combination (up to 12), preserving numeric values and returned unit/scale attributes without conversion. No lines cross series or unit groups. Missing unit metadata is explicitly noted; request exact unit attribute IDs when available. Missing dimensions, duplicate periods or unsupported periods disable the plot with an explanation while retaining the full table. Annual, quarterly, monthly (including IMF reporting-month syntax) and daily periods are supported. More complex SDMX calendars remain available in the table.
 
+## Package structure
+
+```text
+imfexplorer/
+├── DESCRIPTION
+├── NAMESPACE
+├── R/                          # API adapters, query logic, UI and server
+├── inst/
+│   └── app/
+│       ├── app.R               # Bundled Shiny entry point
+│       └── www/
+│           └── imfexplorer.css  # Application stylesheet
+├── man/                        # Generated roxygen2 help
+├── tests/testthat/             # Offline and optional live tests
+├── tools/                      # Development checks and browser harnesses
+├── run-app.R                   # Workspace source launcher
+└── imfexplorer.Rproj
+```
+
+R installs the contents of `inst/` into the package directory. Application resources are resolved with `system.file()` when installed (and with the source directory when using `run-app.R`). Runtime CSS is kept out of R strings. Development scripts and IDE settings remain excluded from the built package.
+
+The public launcher remains `imfexplorer::imfexplorer()`. The bundled app can also be started with default options after installation:
+
+```r
+shiny::runApp(system.file("app", package = "imfexplorer", mustWork = TRUE))
+```
+
 ## Architecture and dependencies
 
 - `R/adapter.R`: the only upstream calls, schema normalization, success-only metadata cache, canonical filter keys, availability status.
 - `R/query.R`: query model, validation, safe R serialization and JSON round trips.
 - `R/app-ui.R`, `R/app-server.R`, `R/launch.R`: staged interface, session lifecycle, public entry point.
 - `R/results.R`: reliable series counts and conservative per-series plots.
+- `R/styles.R`: installed/source resource lookup and stylesheet inclusion.
+- `inst/app/`: bundled Shiny entry point and static assets.
 
 Shiny manages the interface, bslib supplies navigation/layout, DT supplies searchable server-side paginated tables, and jsonlite handles saved configurations and unambiguous cache keys. No plotting framework or other major dependency is added. Searchable code lists use server-side selectize with at most 200 matching options shown at once; metadata are fetched in full for only the chosen dataset.
 

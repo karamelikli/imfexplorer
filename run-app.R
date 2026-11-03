@@ -17,6 +17,7 @@ local({
     stop("Run the run-app.R file inside the imfexplorer source directory.")
   }
   app_source <- new.env(parent = globalenv())
+  app_source$.imfexplorer_source_root <- root
   for (file in list.files(file.path(root, "R"), pattern = "\\.R$", full.names = TRUE)) {
     sys.source(file, envir = app_source)
   }
