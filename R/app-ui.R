@@ -34,11 +34,19 @@ explorer_ui <- function(agency_id) {
           )
         ),
         shiny::actionButton("refresh", "Clear metadata cache / refresh selected dataset"),
-        shiny::textInput("dataset_search", "Search datasets",
-          placeholder = "Search dataset IDs, names, descriptions or versions"
+        shiny::tags$div(
+          class = "imf-dataset-search",
+          shiny::textInput("dataset_search", "Search datasets",
+            width = "100%",
+            placeholder = "Search dataset IDs, names or descriptions"
+          ),
+          shiny::checkboxGroupInput("dataset_search_fields", "Search in",
+            choices = c("ID" = "id", "Name" = "name", "Description" = "description"),
+            selected = c("id", "name", "description"), inline = TRUE, width = "100%"
+          )
         ),
         shiny::uiOutput("catalog_status"), DT::DTOutput("datasets"),
-        shiny::helpText("Search IDs, names, descriptions or versions; select one row."),
+        shiny::helpText("Choose the fields to search, then select a dataset row."),
         shiny::uiOutput("metadata")
       ),
       bslib::nav_panel("2 \u00b7 Dimensions",

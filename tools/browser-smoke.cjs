@@ -13,7 +13,22 @@ const WebSocket = require('ws');
   await cmd('Runtime.enable'); await cmd('Page.enable');
   await cmd('Emulation.setDeviceMetricsOverride', {width:1440,height:1100,deviceScaleFactor:1,mobile:false});
   await cmd('Page.navigate',{url:'http://127.0.0.1:7854'});
-  await wait("document.querySelector('#datasets table tbody tr td')?.innerText === 'TEST'", 'catalogue');
+  await wait("document.querySelector('#datasets table tbody tr td')?.innerText === 'A'", 'catalogue');
+  if(await evaluate("document.querySelectorAll('#dataset_search_fields input:checked').length") !== 3) throw new Error('Search defaults must include all three fields');
+  if(await evaluate("Array.from(document.querySelectorAll('#datasets th')).some(e=>e.innerText==='agency')")) throw new Error('Agency column is visible');
+  if(!await evaluate("document.querySelector('#dataset_search').getBoundingClientRect().width >= document.querySelector('.imf-dataset-search').getBoundingClientRect().width - 2")) throw new Error('Search is not full width');
+  const searchCase = async (fields, text, expected) => {
+    await evaluate(`document.querySelectorAll('#dataset_search_fields input').forEach(e=>{if(e.checked!==${JSON.stringify(fields)}.includes(e.value))e.click()});document.querySelector('#dataset_search').value=${JSON.stringify(text)};document.querySelector('#dataset_search').dispatchEvent(new Event('input',{bubbles:true}))`);
+    await wait(`document.querySelectorAll('#datasets tbody tr:not(:has(td.dataTables_empty))').length===${expected}`, 'search '+fields+' / '+text);
+  };
+  await searchCase(['id','name','description'], 'TEST', 0);
+  await searchCase(['id'], 'B', 1);
+  await searchCase(['name'], 'B', 0);
+  await searchCase(['name'], 'sectors', 1);
+  await searchCase(['description'], 'sectors', 0);
+  await searchCase(['description'], 'OFFLINE', 2);
+  await searchCase([], 'OFFLINE', 0);
+  await searchCase(['id','name','description'], '', 2);
   // Dataset search uses the existing catalogue, and filtered rows keep their original IDs.
   await evaluate("document.querySelector('#dataset_search').value='sectors';document.querySelector('#dataset_search').dispatchEvent(new Event('input',{bubbles:true}))");
   await wait("document.querySelectorAll('#datasets table tbody tr').length===1 && document.querySelector('#datasets table tbody tr').innerText.includes('Synthetic sectors')", 'dataset text search');

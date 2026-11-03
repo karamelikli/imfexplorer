@@ -13,7 +13,7 @@ const WebSocket = require('ws');
   await cmd('Runtime.enable'); await cmd('Page.enable');
   await cmd('Emulation.setDeviceMetricsOverride', {width:1440,height:1100,deviceScaleFactor:1,mobile:false});
   await cmd('Page.navigate',{url:'http://127.0.0.1:7854'});
-  await wait("document.querySelector('#datasets table tbody tr td')?.innerText==='TEST'", 'catalogue');
+  await wait("document.querySelector('#datasets table tbody tr td')?.innerText==='A'", 'catalogue');
   await evaluate("document.querySelector('#datasets table tbody tr td').dispatchEvent(new MouseEvent('mousedown',{bubbles:true,button:0}))");
   await wait("document.querySelectorAll('select[id^=dim_]')[0]?.selectize?.options?.X", 'dimension choices');
   await evaluate("document.querySelectorAll('select[id^=dim_]')[0].selectize.setValue(['X']);document.querySelectorAll('select[id^=dim_]')[1].selectize.setValue(['index']);document.querySelector('a[data-value=time]').click();document.querySelector('input[name=time_mode][value=latest]').click()");

@@ -25,11 +25,11 @@ const WebSocket = require('ws');
   fs.mkdirSync('man/figures',{recursive:true});
   await cmd('Emulation.setDeviceMetricsOverride',{width:1440,height:1000,deviceScaleFactor:1,mobile:false});
   await cmd('Page.navigate',{url:'http://127.0.0.1:7854'});
-  await wait("document.querySelector('#datasets tbody tr td')?.innerText==='IMF.STA'", 'live IMF catalogue');
+  await wait("document.querySelector('#datasets tbody tr td')?.innerText && !document.querySelector('#datasets tbody tr td.dataTables_empty')", 'live IMF catalogue');
   console.log('Live catalogue loaded');
   await evaluate("document.querySelector('#dataset_search').value='CPI';document.querySelector('#dataset_search').dispatchEvent(new Event('input',{bubbles:true}))");
-  await wait("Array.from(document.querySelectorAll('#datasets tbody tr')).some(r=>r.cells[1]?.innerText.trim()==='CPI')", 'CPI row');
-  const version=await evaluate("Array.from(document.querySelectorAll('#datasets tbody tr')).find(r=>r.cells[1]?.innerText.trim()==='CPI').cells[4].innerText.trim()");
+  await wait("Array.from(document.querySelectorAll('#datasets tbody tr')).some(r=>r.cells[0]?.innerText.trim()==='CPI')", 'CPI row');
+  const version=await evaluate("Array.from(document.querySelectorAll('#datasets tbody tr')).find(r=>r.cells[0]?.innerText.trim()==='CPI').cells[3].innerText.trim()");
   await screenshot('README-datasets.png',950);
   const query={schema_version:1,agency:'IMF.STA',dataset:'CPI',version,
     filters:{COUNTRY:['USA'],INDEX_TYPE:['CPI'],COICOP_1999:['_T'],TYPE_OF_TRANSFORMATION:['IX'],FREQUENCY:['M']},

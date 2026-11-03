@@ -463,10 +463,16 @@ explorer_server <- function(agency_id, api) {
     output$datasets <- DT::renderDT(
       {
         shiny::req(rv$catalog)
-        DT::datatable(rv$catalog[c("agency", "id", "name", "description", "version")],
+        columns <- c("id", "name", "description", "version")
+        fields <- input$dataset_search_fields
+        # Before the checkbox group binds, use its three default fields.
+        if (!"dataset_search_fields" %in% names(input)) fields <- c("id", "name", "description")
+        searchable <- columns %in% intersect(fields, c("id", "name", "description"))
+        DT::datatable(rv$catalog[columns],
           rownames = FALSE, selection = "single", escape = TRUE,
           options = list(
             pageLength = 10, scrollX = TRUE, searching = TRUE,
+            columnDefs = list(list(targets = which(!searchable) - 1L, searchable = FALSE)),
             dom = "<'imf-hidden-filter'f>lrtip", search = list(search = shiny::isolate(
               if (is.null(input$dataset_search)) "" else input$dataset_search
             ))

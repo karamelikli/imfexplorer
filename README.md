@@ -52,7 +52,7 @@ The app opens with agency `IMF.STA`. To use another agency, pass its ID with `ag
 
 ### 1. Find a dataset
 
-Search dataset IDs, names or descriptions, then select a row to explore its dimensions.
+Search dataset IDs, names or descriptions using the full-width search box. All three fields are selected by default; use the **Search in** checkboxes to narrow your search. Select a row to explore its dimensions.
 
 ![Dataset browser showing a search for CPI](man/figures/README-datasets.png)
 
