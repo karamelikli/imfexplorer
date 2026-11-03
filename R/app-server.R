@@ -7,7 +7,9 @@
 #' @param api An adapter list supplying `datasets(agency)`, `dimensions(q)`,
 #'   `values(q, dimension)` and `data(q)` functions. Metadata methods must return
 #'   the normalized schemas documented by [imf_adapter()]. An optional
-#'   `metadata(q)` method returns a full SDMX structure with references.
+#'   `structure(q)` method returns a full SDMX structure with references. Optional
+#'   `metadata_catalogue()` and `metadata(report)` methods list report identities
+#'   and retrieve a full metadata report using [imf.data::sdmx_metadata()].
 #' @return A function with Shiny's `input`, `output` and `session` arguments.
 #'   The input object supplies controls, the output object receives renderers,
 #'   and the session object manages UI updates and downloads.
@@ -39,6 +41,9 @@
 #'     dimension's one-based position while retaining flagged codes.}
 #'   \item{\code{choose_dataset(row, restore)}}{Loads a one-row catalogue
 #'     selection, optionally restores a saved query, and returns success.}
+#'   \item{\code{load_reports()}}{Loads and caches metadata-report choices.}
+#'   \item{\code{retrieve_report(q)}}{Resolves an automatic or explicitly selected
+#'     report and retrieves its full metadata with independent report identity.}
 #'   \item{\code{query_issue(q)}}{Validates availability for an explicit query snapshot.}
 #'   \item{\code{prepare_retrieval(q)}}{Optionally excludes flagged selections,
 #'     rechecks availability, and returns the query, removed codes and any error.}
@@ -65,6 +70,7 @@ explorer_server <- function(agency_id, api) {
     cache <- new.env(parent = emptyenv())
     rv <- shiny::reactiveValues(
       catalog = NULL, catalog_error = NULL, dataset = NULL,
+      metadata_reports = NULL, metadata_reports_error = NULL,
       dimensions = NULL, values = list(), value_errors = list(),
       availability_keys = list(),
       seed = list(), generation = 0L, results = NULL, result_query = NULL,
@@ -153,6 +159,7 @@ explorer_server <- function(agency_id, api) {
       rv$result_error <- NULL
       rv$result_exclusions <- character()
       shiny::updateCheckboxInput(session, "exclude_unavailable", value = FALSE)
+      shiny::updateSelectizeInput(session, "metadata_report", selected = "")
       rv$generation <- rv$generation + 1L
       shiny::updateRadioButtons(session, "time_mode", selected = "all")
       shiny::updateTextInput(session, "start", value = "")
@@ -179,6 +186,82 @@ explorer_server <- function(agency_id, api) {
       if (!ans$ok) notify(paste("Catalogue request failed:", ans$error))
       ans$ok
     }
+    # Load report identities independently from the dataflow catalogue.
+    #
+    # @return TRUE after loading report choices; FALSE on failure. No report
+    #   contents or observations are retrieved by this helper.
+    load_reports <- function() {
+      ans <- attempt({
+        if (!is.function(api$metadata_catalogue)) stop("Metadata reports are not supplied by this adapter.")
+        cached(cache, "metadata_report_catalogue", api$metadata_catalogue)
+      })
+      rv$metadata_reports_error <- ans$error
+      if (!ans$ok) {
+        return(FALSE)
+      }
+      rv$metadata_reports <- ans$value
+      rows <- ans$value
+      choices <- c("Automatic dataset ID match" = "", stats::setNames(
+        metadata_report_keys(rows),
+        paste(rows$agency, rows$id, rows$version, "-", rows$name)
+      ))
+      selected <- input$metadata_report
+      if (is.null(selected) || !selected %in% choices) selected <- ""
+      shiny::updateSelectizeInput(session, "metadata_report", choices = choices, selected = selected, server = TRUE)
+      TRUE
+    }
+    # Fetch one metadata report using its independent provider, ID and version.
+    #
+    # @param q Observation query whose dataset ID is used for automatic matching.
+    # @return A list with value, request identity and error. Failed requests are
+    #   not cached, and missing or ambiguous automatic matches remain explicit.
+    retrieve_report <- function(q) {
+      request <- NULL
+      ans <- attempt({
+        if (is.null(rv$metadata_reports) && !load_reports()) stop(rv$metadata_reports_error)
+        reports <- rv$metadata_reports
+        selected <- input$metadata_report
+        manual <- !is.null(selected) && nzchar(selected)
+        if (manual) {
+          matches <- match(selected, metadata_report_keys(reports))
+          if (is.na(matches)) stop("Selected metadata report is no longer in the catalogue.")
+        } else {
+          matches <- which(reports$id == q$dataset)
+          own <- matches[reports$agency[matches] == q$agency]
+          if (length(own)) matches <- own
+          if (length(matches) != 1L) {
+            stop(
+              "No unique metadata report matches dataset ID ", q$dataset,
+              ". Load metadata reports and choose a report if its ID differs."
+            )
+          }
+        }
+        report <- reports[matches, , drop = FALSE]
+        request <- list(
+          provider_id = report$agency[[1]], metadataset_id = report$id[[1]],
+          version = report$version[[1]], selection = if (manual) "user_selected" else "dataset_id_match"
+        )
+        if (!is.function(api$metadata)) stop("Metadata report retrieval is not supplied by this adapter.")
+        key <- cache_key("metadata_report", list(
+          agency = request$provider_id,
+          dataset = request$metadataset_id, version = request$version
+        ))
+        cached(cache, key, function() {
+          value <- api$metadata(report)
+          if (is.null(value)) stop("IMF returned no content for the selected metadata report.")
+          value
+        })
+      })
+      list(value = ans$value, request = request, error = ans$error)
+    }
+    shiny::observeEvent(input$load_metadata_reports, load_reports())
+    output$metadata_report_status <- shiny::renderUI({
+      if (!is.null(rv$metadata_reports_error)) {
+        shiny::p(role = "status", rv$metadata_reports_error)
+      } else if (!is.null(rv$metadata_reports)) {
+        shiny::p(paste(nrow(rv$metadata_reports), "metadata reports available to search."))
+      }
+    })
     # Update bound dimension controls without changing selections
     #
     # @param q Query snapshot whose selections must be retained.
@@ -728,9 +811,9 @@ explorer_server <- function(agency_id, api) {
       }
       metadata_query <- q
       metadata_query$filters <- list()
-      structure <- if (is.function(api$metadata)) {
-        shiny::withProgress(message = "Retrieving dataset metadata", value = 0.5, {
-          attempt(cached(cache, cache_key("structure", metadata_query), function() api$metadata(q)))
+      structure <- if (is.function(api$structure)) {
+        shiny::withProgress(message = "Retrieving dataset structure", value = 0.5, {
+          attempt(cached(cache, cache_key("structure", metadata_query), function() api$structure(q)))
         })
       } else {
         list(value = NULL, error = "Full structural metadata are not supplied by this adapter.")
@@ -738,10 +821,12 @@ explorer_server <- function(agency_id, api) {
       if (is.null(structure$value) && is.null(structure$error)) {
         structure$error <- "IMF returned no structural metadata for this dataset version."
       }
+      report <- shiny::withProgress(message = "Retrieving metadata report", value = 0.5, retrieve_report(q))
       result <- ans$value
       attr(result, "imf_metadata") <- result_metadata(
         result, q, rv$dataset, rv$dimensions, rv$values,
-        structure = structure$value, structure_error = structure$error, excluded = prepared$excluded
+        structure = structure$value, structure_error = structure$error, excluded = prepared$excluded,
+        report = report$value, report_request = report$request, report_error = report$error
       )
       rv$results <- result
       rv$result_query <- q
@@ -757,6 +842,14 @@ explorer_server <- function(agency_id, api) {
           count <- series_info(rv$results, rv$result_dimensions)$count
           meta <- attr(rv$results, "imf_metadata", exact = TRUE)
           shiny::tagList(
+            shiny::p(if (identical(meta$report_status, "available")) {
+              paste(
+                "Metadata report included:", meta$report_request$provider_id,
+                meta$report_request$metadataset_id, meta$report_request$version
+              )
+            } else {
+              paste("Metadata report unavailable:", meta$report_error)
+            }),
             shiny::p(if (identical(meta$structure_status, "available")) {
               "Exports include dataset, query, dimension, code-label and full structural metadata."
             } else {

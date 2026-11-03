@@ -68,7 +68,7 @@ Choose **All periods**, a **Period range**, or **Latest N per series**, then rev
 
 ### 3. Retrieve and export
 
-Optionally enable **Exclude unavailable or unverified selections before retrieval** to remove flagged codes and recheck the remaining query. Excluded codes are listed with the retrieval status. If a dimension has no verified selected codes left, select an available value or explicitly clear it before continuing. Metadata request failures still require a successful retry.
+Optionally enable **Exclude unavailable or unverified selections before retrieval** to remove flagged codes and recheck the remaining query. Excluded codes are listed with the retrieval status. If a dimension has no verified selected codes left, select an available value or explicitly clear it before continuing. Dimension-availability request failures still require a successful retry.
 
 Click **Retrieve data** to download observations. Browse the table, view a time-series plot when supported, and download **Excel** or **RDS** below the table.
 
@@ -80,7 +80,7 @@ Click **Retrieve data** to download observations. Browse the table, view a time-
 
 - **R script:** download runnable code from the Review tab.
 - **Query JSON:** save your selections and restore them later with **Restore query JSON** in the sidebar.
-- **Excel:** export observations to the **Data** sheet, with **Metadata**, **Dimensions**, **Codes** and **Structure** sheets. Metadata include the exact query, dataset/version, retrieval time and code labels. Full SDMX structural metadata are included when available.
+- **Excel:** export observations to the **Data** sheet, with **Metadata**, **Dimensions**, **Codes**, **Structure** and **Metadata_Report** sheets. Metadata include the exact query, dataset/version, retrieval time and code labels. Full SDMX structural metadata and reports from `imf.data::sdmx_metadata()` are included when available.
 - **RDS:** export the same observations as a data frame with metadata attached. Read them in R with:
 
 ```r
@@ -88,9 +88,13 @@ data <- readRDS("imf-data.rds")
 metadata <- attr(data, "imf_metadata")
 metadata$query
 metadata$dataset
+metadata$report # Full sdmx_metadata() response
+metadata$report_request # Report provider, ID, version and selection method
 ```
 
-Metadata are captured with the result. If the full structural metadata request fails, exports still contain the available catalogue and dimension metadata, together with the failure message.
+Metadata reports have their own IDs and versions. In **Retrieve & export**, leave **Metadata report** on automatic to look for an exact dataset ID match, or click **Load metadata reports** and search for a report to select explicitly. The export records that report's identity separately from the dataflow identity. A missing or ambiguous match is reported; the app does not attach an unrelated report automatically.
+
+Metadata are captured with the result. If a report is unavailable or a metadata request fails, exports still contain the available catalogue and dimension metadata, together with the failure message.
 
 Selections remain editable. If you change a query after retrieval, existing results are marked **EARLIER QUERY** until you retrieve again. **Clear current query** starts a new selection.
 

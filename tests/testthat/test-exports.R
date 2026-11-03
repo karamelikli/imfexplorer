@@ -25,7 +25,10 @@ test_that("Excel and RDS exports preserve observations and the metadata snapshot
   expect_identical(restored, data)
   expect_s3_class(restored, "data.frame")
   write_result_excel(data, xlsx)
-  expect_identical(readxl::excel_sheets(xlsx), c("Data", "Metadata", "Dimensions", "Codes", "Structure"))
+  expect_identical(
+    readxl::excel_sheets(xlsx),
+    c("Data", "Metadata", "Dimensions", "Codes", "Structure", "Metadata_Report")
+  )
   observations <- readxl::read_xlsx(xlsx, sheet = "Data")
   expect_identical(observations$OBS_VALUE, data$OBS_VALUE)
   expect_identical(observations$TIME_PERIOD, data$TIME_PERIOD)
@@ -45,7 +48,7 @@ test_that("Excel and RDS exports preserve observations and the metadata snapshot
 test_that("metadata failures do not discard observations and unsuccessful requests can retry", {
   f <- fixture_api()
   calls <- 0L
-  f$api$metadata <- function(q) {
+  f$api$structure <- function(q) {
     calls <<- calls + 1L
     if (calls == 1L) stop("synthetic structure failure")
     list(id = q$dataset, version = q$version)
@@ -87,7 +90,7 @@ test_that("full metadata requests use the exact dataset identity and references"
     seen <<- list(...)
     list(data = "metadata")
   }, .package = "imf.data")
-  expect_identical(imf_adapter()$metadata(new_query("TEST", "A", "1")), list(data = "metadata"))
+  expect_identical(imf_adapter()$structure(new_query("TEST", "A", "1")), list(data = "metadata"))
   expect_identical(seen, list(
     structure_type = "dataflow", agency_id = "TEST", resource_id = "A", version = "1", references = "all"
   ))

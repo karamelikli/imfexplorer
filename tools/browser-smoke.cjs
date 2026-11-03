@@ -36,7 +36,7 @@ const WebSocket = require('ws');
   await wait("document.querySelector('#dimension_controls').innerText.includes('SECTOR')", 'filtered row maps to correct dataset');
   await evaluate("document.querySelector('#clear_query').click()");
   await wait("document.querySelector('#summary').innerText.includes('Choose a dataset') && document.querySelector('#dataset_search').value==='' && document.querySelectorAll('#datasets table tbody tr').length===2", 'clear current query and search');
-  await evaluate("document.querySelector('#datasets table tbody tr td').dispatchEvent(new MouseEvent('mousedown',{bubbles:true,button:0}))");
+  await wait("(()=>{const cell=document.querySelector('#datasets table tbody tr td');if(cell?.innerText!=='A'||document.documentElement.classList.contains('shiny-busy'))return false;cell.dispatchEvent(new MouseEvent('mousedown',{bubbles:true,button:0}));return true})()", 'select reset catalogue');
   await wait("document.querySelectorAll('select[id^=dim_]')[0]?.selectize?.options?.X", 'remote code choices');
   await evaluate("document.querySelector('button[id$=_all]').click()");
   await wait("document.querySelectorAll('select[id^=dim_]')[0].selectize.getValue().length===2", 'select all available codes');
@@ -70,8 +70,14 @@ const WebSocket = require('ws');
     fs.writeFileSync(file,result.text);
   }
 
-  await evaluate("document.querySelector('a[data-value=retrieve]').click(); document.querySelector('#retrieve').click()");
+  await evaluate("document.querySelector('a[data-value=retrieve]').click(); document.querySelector('#load_metadata_reports').click()");
+  await wait("document.querySelector('#metadata_report_status').innerText.includes('1 metadata reports')", 'metadata report catalogue');
+  await evaluate("document.querySelector('#metadata_report').selectize.onSearchChange('A_REPORT')");
+  await wait("Object.values(document.querySelector('#metadata_report').selectize.options).some(x=>x.label.includes('A_REPORT'))", 'searchable metadata report');
+  await evaluate("const s=document.querySelector('#metadata_report').selectize; s.setValue(Object.values(s.options).find(x=>x.label.includes('A_REPORT')).value)");
+  await evaluate("document.querySelector('#retrieve').click()");
   await wait("document.querySelector('#result_status').innerText.includes('2 returned observations')", 'retrieved fixture data');
+  await wait("document.querySelector('#result_status').innerText.includes('Metadata report included: TEST A_REPORT 9')", 'metadata report retrieved');
   await wait("document.querySelector('#series_plot img')?.getAttribute('src')", 'plot');
   await wait("document.querySelector('#excel').href.includes('/download/')", 'data downloads');
   for (const [id,file] of [['excel','/tmp/imfexplorer-data.xlsx'],['rds','/tmp/imfexplorer-data.rds']]) {

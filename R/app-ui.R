@@ -120,13 +120,23 @@ explorer_ui <- function(agency_id) {
       ),
       bslib::nav_panel("5 \u00b7 Retrieve & export",
         value = "retrieve",
+        shiny::selectizeInput("metadata_report", "Metadata report",
+          choices = c("Automatic dataset ID match" = ""),
+          width = "100%", options = list(placeholder = "Search report IDs or names")
+        ),
+        shiny::actionButton("load_metadata_reports", "Load metadata reports", class = "btn-outline-secondary"),
+        shiny::helpText(paste(
+          "Reports use their own IDs, providers and versions. Automatic matching uses the dataset ID.",
+          "Load the report catalogue to choose a different report explicitly."
+        )),
+        shiny::uiOutput("metadata_report_status"),
         shiny::checkboxInput(
           "exclude_unavailable", "Exclude unavailable or unverified selections before retrieval", FALSE
         ),
         shiny::helpText(paste(
           "Remaining codes are checked again before retrieval. Excluded codes are reported below.",
           "If a dimension loses every selected code, choose an available value or explicitly clear it to continue.",
-          "Metadata failures must be resolved before retrieval."
+          "Availability request failures must be resolved before retrieval."
         )),
         shiny::uiOutput("breadth"),
         shiny::checkboxInput("broad_ok", "I understand this may request many series / observations", FALSE),

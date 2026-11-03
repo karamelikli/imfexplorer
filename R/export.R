@@ -12,10 +12,14 @@
 #' @param structure Optional raw SDMX structure response with references.
 #' @param structure_error Optional explanation for missing structural metadata.
 #' @param excluded Character vector describing excluded selections.
+#' @param report Optional full response from [imf.data::sdmx_metadata()].
+#' @param report_request Report identity and selection method, or NULL.
+#' @param report_error Optional explanation for an unavailable metadata report.
 #' @return A metadata list suitable for the `imf_metadata` data-frame attribute.
 #' @keywords internal
 result_metadata <- function(data, q, dataset, dimensions, values, structure = NULL,
-                            structure_error = NULL, excluded = character()) {
+                            structure_error = NULL, excluded = character(), report = NULL,
+                            report_request = NULL, report_error = NULL) {
   codes <- lapply(intersect(dimensions$id[!dimensions$is_time], names(data)), function(dim) {
     observed <- unique(as.character(data[[dim]]))
     observed <- observed[!is.na(observed)]
@@ -36,7 +40,9 @@ result_metadata <- function(data, q, dataset, dimensions, values, structure = NU
     query = q, dataset = dataset, excluded_selections = excluded,
     dimensions = dimensions, dimension_values = codes,
     structure_status = if (is.null(structure)) "unavailable" else "available",
-    structure_error = structure_error, structure = structure
+    structure_error = structure_error, structure = structure,
+    report_status = if (is.null(report)) "unavailable" else "available",
+    report_request = report_request, report_error = report_error, report = report
   )
 }
 
@@ -106,7 +112,8 @@ excel_frame <- function(data) {
 #' Write observations and their metadata to an Excel workbook
 #'
 #' Export the immutable result snapshot to Data, Metadata, Dimensions, Codes and
-#' Structure sheets. Report Excel size limits explicitly; the RDS export retains
+#' Structure sheets, plus a Metadata_Report sheet from `sdmx_metadata()`.
+#' Report Excel size limits explicitly; the RDS export retains
 #' data without those worksheet limits.
 #'
 #' @param data Retrieved observation data frame with an `imf_metadata` attribute.
@@ -127,9 +134,9 @@ write_result_excel <- function(data, file) {
   }
   sheets <- list(
     Data = excel_frame(data),
-    Metadata = metadata_table(meta[setdiff(names(meta), c("dimensions", "dimension_values", "structure"))]),
+    Metadata = metadata_table(meta[setdiff(names(meta), c("dimensions", "dimension_values", "structure", "report"))]),
     Dimensions = excel_frame(meta$dimensions), Codes = codes,
-    Structure = metadata_table(meta$structure)
+    Structure = metadata_table(meta$structure), Metadata_Report = metadata_table(meta$report)
   )
   for (name in names(sheets)) {
     sheet <- sheets[[name]]

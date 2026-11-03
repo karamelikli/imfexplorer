@@ -12,7 +12,9 @@ explorer_server(agency_id, api)
 \item{api}{An adapter list supplying \code{datasets(agency)}, \code{dimensions(q)},
 \code{values(q, dimension)} and \code{data(q)} functions. Metadata methods must return
 the normalized schemas documented by \code{\link[=imf_adapter]{imf_adapter()}}. An optional
-\code{metadata(q)} method returns a full SDMX structure with references.}
+\code{structure(q)} method returns a full SDMX structure with references. Optional
+\code{metadata_catalogue()} and \code{metadata(report)} methods list report identities
+and retrieve a full metadata report using \code{\link[imf.data:sdmx_metadata]{imf.data::sdmx_metadata()}}.}
 }
 \value{
 A function with Shiny's \code{input}, \code{output} and \code{session} arguments.
@@ -54,6 +56,9 @@ availability for one query snapshot and updates affected controls.}
 dimension's one-based position while retaining flagged codes.}
 \item{\code{choose_dataset(row, restore)}}{Loads a one-row catalogue
 selection, optionally restores a saved query, and returns success.}
+\item{\code{load_reports()}}{Loads and caches metadata-report choices.}
+\item{\code{retrieve_report(q)}}{Resolves an automatic or explicitly selected
+report and retrieves its full metadata with independent report identity.}
 \item{\code{query_issue(q)}}{Validates availability for an explicit query snapshot.}
 \item{\code{prepare_retrieval(q)}}{Optionally excludes flagged selections,
 rechecks availability, and returns the query, removed codes and any error.}

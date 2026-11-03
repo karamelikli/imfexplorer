@@ -12,7 +12,10 @@ result_metadata(
   values,
   structure = NULL,
   structure_error = NULL,
-  excluded = character()
+  excluded = character(),
+  report = NULL,
+  report_request = NULL,
+  report_error = NULL
 )
 }
 \arguments{
@@ -31,6 +34,12 @@ result_metadata(
 \item{structure_error}{Optional explanation for missing structural metadata.}
 
 \item{excluded}{Character vector describing excluded selections.}
+
+\item{report}{Optional full response from \code{\link[imf.data:sdmx_metadata]{imf.data::sdmx_metadata()}}.}
+
+\item{report_request}{Report identity and selection method, or NULL.}
+
+\item{report_error}{Optional explanation for an unavailable metadata report.}
 }
 \value{
 A metadata list suitable for the \code{imf_metadata} data-frame attribute.

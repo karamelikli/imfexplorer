@@ -10,15 +10,18 @@ imf_adapter()
 A named list of functions: \code{datasets(agency)} returns normalized
 catalogue metadata; \code{dimensions(q)} returns normalized dimension metadata;
 \code{values(q, dimension)} returns normalized available codes; and \code{data(q)}
-returns an observation data frame for a validated query. \code{metadata(q)}
+returns an observation data frame for a validated query. \code{structure(q)}
 returns the full SDMX dataflow structure and its references.
+\code{metadata_catalogue()} lists metadata-report identities, independently of
+dataflow versions; \code{metadata(report)} retrieves one full metadata report.
+A report is a one-row frame with \code{agency}, \code{id} and \code{version} columns.
 }
 \description{
 Construct the upstream API boundary without making network requests.
 }
 \details{
 The returned methods use imf.data 0.2.0 or later and normalize
-metadata through this package's internal helpers. Each method preserves
+metadata through this package's internal helpers. Dataflow methods preserve
 the query's agency, dataset ID and version. Availability requests exclude
 the requested dimension's own filter.
 }

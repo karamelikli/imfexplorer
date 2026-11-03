@@ -4,14 +4,17 @@
 #' Construct the upstream API boundary without making network requests.
 #'
 #' @details The returned methods use imf.data 0.2.0 or later and normalize
-#'   metadata through this package's internal helpers. Each method preserves
+#'   metadata through this package's internal helpers. Dataflow methods preserve
 #'   the query's agency, dataset ID and version. Availability requests exclude
 #'   the requested dimension's own filter.
 #' @return A named list of functions: `datasets(agency)` returns normalized
 #'   catalogue metadata; `dimensions(q)` returns normalized dimension metadata;
 #'   `values(q, dimension)` returns normalized available codes; and `data(q)`
-#'   returns an observation data frame for a validated query. `metadata(q)`
+#'   returns an observation data frame for a validated query. `structure(q)`
 #'   returns the full SDMX dataflow structure and its references.
+#'   `metadata_catalogue()` lists metadata-report identities, independently of
+#'   dataflow versions; `metadata(report)` retrieves one full metadata report.
+#'   A report is a one-row frame with `agency`, `id` and `version` columns.
 #' @seealso [normalize_datasets()], [normalize_dimensions()],
 #'   [normalize_values()], [data_arguments()]
 #'
@@ -31,11 +34,34 @@ imf_adapter <- function() {
         agency_id = q$agency, version = q$version
       ))
     },
-    metadata = function(q) {
+    structure = function(q) {
       imf.data::sdmx_structure(
         structure_type = "dataflow", agency_id = q$agency,
         resource_id = q$dataset, version = q$version, references = "all"
       )
+    },
+    metadata_catalogue = function() {
+      out <- imf.data::sdmx_metadata(detail = "allstubs")
+      reports <- out$data$metadataSets
+      if (!length(reports)) {
+        return(normalize_datasets(data.frame(agency = character(), id = character(), version = character())))
+      }
+      normalize_datasets(do.call(rbind, lapply(reports, function(report) {
+        data.frame(
+          agency = report$agencyID, id = report$id, version = report$version,
+          name = if (is.null(report$name)) report$id else report$name, stringsAsFactors = FALSE
+        )
+      })))
+    },
+    metadata = function(report) {
+      out <- imf.data::sdmx_metadata(
+        provider_id = report$agency[[1]], metadataset_id = report$id[[1]],
+        version = report$version[[1]], detail = "full"
+      )
+      if (!length(out$data$metadataSets)) {
+        return(NULL)
+      }
+      out
     },
     data = function(q) {
       out <- do.call(imf.data::get_data, data_arguments(q))
@@ -293,4 +319,18 @@ dimension_choices <- function(values, selected) {
     labels,
     if (length(extras)) paste0(extras, " [unavailable / unverified]") else character()
   ))
+}
+
+#' Identify metadata reports independently of catalogue order
+#'
+#' @param reports Normalized metadata-report catalogue.
+#' @return A character vector of JSON keys containing provider, ID and version.
+#'   Empty catalogues return an empty character vector.
+#' @keywords internal
+metadata_report_keys <- function(reports) {
+  vapply(seq_len(nrow(reports)), function(i) {
+    cache_key("metadata_report", list(
+      agency = reports$agency[i], dataset = reports$id[i], version = reports$version[i]
+    ))
+  }, character(1))
 }
