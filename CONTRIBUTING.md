@@ -17,10 +17,10 @@ If an already running app still shows an old message after you update the packag
 To run this workspace's source directly, independently of any older loaded package, use:
 
 ```r
-source("run-app.R")
+source("tools/run-app.R")
 ```
 
-Run this from the package source directory, or supply the full path to its `run-app.R` file. The script loads functions into a private environment and does not assign them into `.GlobalEnv`. From a terminal, `Rscript run-app.R` also works.
+Run this from the package source directory, or supply the full path to its `tools/run-app.R` file. The script loads functions into a private environment and does not assign them into `.GlobalEnv`. From a terminal, `Rscript tools/run-app.R` also works.
 
 ## Package structure
 
@@ -36,12 +36,13 @@ imfexplorer/
 │           └── imfexplorer.css  # Application stylesheet
 ├── man/                        # Generated roxygen2 help
 ├── tests/testthat/             # Offline and optional live tests
-├── tools/                      # Development checks and browser harnesses
-├── run-app.R                   # Workspace source launcher
+├── tools/
+│   ├── run-app.R               # Workspace source launcher
+│   └── ...                     # Development checks and browser harnesses
 └── imfexplorer.Rproj
 ```
 
-R installs the contents of `inst/` into the package directory. Application resources are resolved with `system.file()` when installed (and with the source directory when using `run-app.R`). Runtime CSS is kept out of R strings. Development scripts and IDE settings remain excluded from the built package.
+R installs the contents of `inst/` into the package directory. Application resources are resolved with `system.file()` when installed (and with the source directory when using `tools/run-app.R`). Runtime CSS is kept out of R strings. Development scripts and IDE settings remain excluded from the built package.
 
 The public launcher remains `imfexplorer::imfexplorer()`. The bundled app can also be started with default options after installation:
 
@@ -105,3 +106,7 @@ Rscript -e 'pkgload::load_all("."); shiny::runApp(explorer_app(), host="127.0.0.
 ```
 
 Start Chrome with remote debugging on port 9225, then run `node tools/capture-readme.cjs` (Node.js and the `ws` module are required). The capture script waits for imported selections to finish loading, uses live responses, and writes only screenshots plus a temporary query JSON file. Update the capture date in the README when regenerating images.
+
+## README badges
+
+Badges are bundled as SVG files in `man/figures/` so they render in the private repository without a separate badge service. Their version, licence and minimum-dependency values come from `DESCRIPTION`; keep these files and their README labels in sync when changing package metadata.

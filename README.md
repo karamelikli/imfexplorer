@@ -1,5 +1,10 @@
 # imfexplorer
 
+[![Version: 0.2.3](man/figures/badge-version.svg)](DESCRIPTION)
+[![R: 4.1 or later](man/figures/badge-r.svg)](https://www.r-project.org/)
+[![imf.data: 0.2.0 or later](man/figures/badge-imf-data.svg)](https://pedrobtz.github.io/imf.data/)
+[![License: GPL-3](man/figures/badge-license.svg)](https://www.gnu.org/licenses/gpl-3.0.html)
+
 Explore IMF datasets visually, choose dimension values, and download data through a Shiny app powered by [imf.data](https://pedrobtz.github.io/imf.data/).
 
 ## Install and open

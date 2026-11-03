@@ -10,11 +10,11 @@ local({
     tail(source_files, 1L)
   } else {
     file_arg <- grep("^--file=", commandArgs(trailingOnly = FALSE), value = TRUE)
-    if (length(file_arg)) sub("^--file=", "", file_arg[[1]]) else "run-app.R"
+    if (length(file_arg)) sub("^--file=", "", file_arg[[1]]) else file.path("tools", "run-app.R")
   }
-  root <- dirname(normalizePath(entry, mustWork = TRUE))
+  root <- dirname(dirname(normalizePath(entry, mustWork = TRUE)))
   if (!file.exists(file.path(root, "DESCRIPTION")) || !dir.exists(file.path(root, "R"))) {
-    stop("Run the run-app.R file inside the imfexplorer source directory.")
+    stop("Run tools/run-app.R from the imfexplorer source checkout.")
   }
   app_source <- new.env(parent = globalenv())
   app_source$.imfexplorer_source_root <- root
