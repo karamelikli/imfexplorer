@@ -1,6 +1,7 @@
 # Run from the package/project directory. These checks never edit source files.
 styler::style_pkg(dry = "fail")
 styler::style_dir("tools", dry = "fail")
+pkgload::load_all(".", quiet = TRUE)
 lints <- lintr::lint_dir(show_progress = FALSE)
 if (length(lints)) {
   print(lints)

@@ -48,6 +48,12 @@ const WebSocket = require('ws');
   await wait("document.querySelector('#result_status').innerText.includes('12 returned observations')", 'twelve live CPI observations');
   await wait("document.querySelector('#series_plot img')?.getAttribute('src')", 'live CPI plot');
   await screenshot('README-results.png',1650);
+  for (const [id, file] of [['excel', '/tmp/imfexplorer-live-data.xlsx'], ['rds', '/tmp/imfexplorer-live-data.rds']]) {
+    await wait(`document.querySelector('#${id}').href.includes('/download/')`, 'live '+id+' download');
+    const result = await evaluate(`(async()=>{const r=await fetch(document.querySelector('#${id}').href);return {ok:r.ok,bytes:Array.from(new Uint8Array(await r.arrayBuffer()))}})()`);
+    if(!result.ok) throw new Error('Download failed: '+id);
+    fs.writeFileSync(file, Buffer.from(result.bytes));
+  }
   console.log('Live query:',JSON.stringify(query));
   console.log('Result:',await evaluate("document.querySelector('#result_status').innerText"));
   if(exceptions.length) throw new Error(JSON.stringify(exceptions));

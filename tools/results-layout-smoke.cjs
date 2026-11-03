@@ -32,7 +32,7 @@ const WebSocket = require('ws');
         return {tableBottom:Math.max(table.bottom,wrapper.bottom),exportTop:actions.top};
       })()`);
       if(bounds.exportTop<bounds.tableBottom+10) throw new Error('Downloads overlap table: '+JSON.stringify({width,size,...bounds}));
-      for(const id of ['csv','rds']) {
+      for(const id of ['excel','rds']) {
         const clickable=await evaluate(`(async()=>{const button=document.querySelector('#${id}');button.scrollIntoView({block:'center',behavior:'instant'});await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));const r=button.getBoundingClientRect();const hit=document.elementFromPoint(r.left+r.width/2,r.top+r.height/2);return button===hit||button.contains(hit)})()`);
         if(!clickable) {
           const shot=await cmd('Page.captureScreenshot',{format:'png',captureBeyondViewport:false});fs.writeFileSync('/tmp/imfexplorer-exports-failure.png',Buffer.from(shot.data,'base64'));

@@ -140,10 +140,11 @@ explorer_ui <- function(agency_id) {
             shiny::h4("Download data"),
             shiny::tags$div(
               class = "imf-export-actions",
-              shiny::downloadButton("csv", "Download CSV"), shiny::downloadButton("rds", "Download RDS")
+              shiny::downloadButton("excel", "Download Excel"), shiny::downloadButton("rds", "Download RDS")
             ),
             shiny::helpText(paste(
-              "CSV/RDS export the displayed result, including when marked as an earlier query.",
+              "Excel/RDS include the displayed result and its metadata, including when marked as an earlier query.",
+              "Excel uses separate metadata sheets. RDS stores metadata in the imf_metadata attribute.",
               "The script and JSON describe the current query."
             ))
           ),

@@ -6,7 +6,8 @@
 #' @param agency_id Character scalar identifying the initial IMF maintainer.
 #' @param api An adapter list supplying `datasets(agency)`, `dimensions(q)`,
 #'   `values(q, dimension)` and `data(q)` functions. Metadata methods must return
-#'   the normalized schemas documented by [imf_adapter()].
+#'   the normalized schemas documented by [imf_adapter()]. An optional
+#'   `metadata(q)` method returns a full SDMX structure with references.
 #' @return A function with Shiny's `input`, `output` and `session` arguments.
 #'   The input object supplies controls, the output object receives renderers,
 #'   and the session object manages UI updates and downloads.
@@ -725,7 +726,24 @@ explorer_server <- function(agency_id, api) {
         notify(paste("Retrieval failed:", ans$error))
         return()
       }
-      rv$results <- ans$value
+      metadata_query <- q
+      metadata_query$filters <- list()
+      structure <- if (is.function(api$metadata)) {
+        shiny::withProgress(message = "Retrieving dataset metadata", value = 0.5, {
+          attempt(cached(cache, cache_key("structure", metadata_query), function() api$metadata(q)))
+        })
+      } else {
+        list(value = NULL, error = "Full structural metadata are not supplied by this adapter.")
+      }
+      if (is.null(structure$value) && is.null(structure$error)) {
+        structure$error <- "IMF returned no structural metadata for this dataset version."
+      }
+      result <- ans$value
+      attr(result, "imf_metadata") <- result_metadata(
+        result, q, rv$dataset, rv$dimensions, rv$values,
+        structure = structure$value, structure_error = structure$error, excluded = prepared$excluded
+      )
+      rv$results <- result
       rv$result_query <- q
       rv$result_dimensions <- rv$dimensions
     })
@@ -737,7 +755,16 @@ explorer_server <- function(agency_id, api) {
         if (!is.null(rv$result_error)) shiny::p(role = "alert", paste("Latest retrieval failed:", rv$result_error)),
         if (!is.null(rv$results)) {
           count <- series_info(rv$results, rv$result_dimensions)$count
+          meta <- attr(rv$results, "imf_metadata", exact = TRUE)
           shiny::tagList(
+            shiny::p(if (identical(meta$structure_status, "available")) {
+              "Exports include dataset, query, dimension, code-label and full structural metadata."
+            } else {
+              paste(
+                "Exports include available dataset, query and dimension metadata. Full structure unavailable:",
+                meta$structure_error
+              )
+            }),
             shiny::p(paste(
               nrow(rv$results), "returned observations;",
               if (is.na(count)) "series count unavailable" else paste(count, "returned series")
@@ -745,7 +772,7 @@ explorer_server <- function(agency_id, api) {
             shiny::p(paste("Result:", rv$result_query$agency, rv$result_query$dataset, rv$result_query$version)),
             if (!same_query(query(), rv$result_query)) {
               shiny::tags$strong(role = "alert", paste(
-                "EARLIER QUERY: these results and CSV/RDS downloads belong to an earlier selection.",
+                "EARLIER QUERY: these results and Excel/RDS downloads belong to an earlier selection.",
                 "Retrieve again to update."
               ))
             },
@@ -790,10 +817,14 @@ explorer_server <- function(agency_id, api) {
       shiny::req(plan()$ok)
       draw_series(rv$results, plan())
     })
-    output$csv <- shiny::downloadHandler(filename = function() "imf-data.csv", content = function(file) {
-      shiny::req(rv$results)
-      utils::write.csv(rv$results, file, row.names = FALSE, na = "")
-    })
+    output$excel <- shiny::downloadHandler(
+      filename = function() "imf-data.xlsx",
+      contentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      content = function(file) {
+        shiny::req(rv$results)
+        write_result_excel(rv$results, file)
+      }
+    )
     output$rds <- shiny::downloadHandler(filename = function() "imf-data.rds", content = function(file) {
       shiny::req(rv$results)
       saveRDS(rv$results, file)

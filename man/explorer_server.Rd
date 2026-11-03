@@ -11,7 +11,8 @@ explorer_server(agency_id, api)
 
 \item{api}{An adapter list supplying \code{datasets(agency)}, \code{dimensions(q)},
 \code{values(q, dimension)} and \code{data(q)} functions. Metadata methods must return
-the normalized schemas documented by \code{\link[=imf_adapter]{imf_adapter()}}.}
+the normalized schemas documented by \code{\link[=imf_adapter]{imf_adapter()}}. An optional
+\code{metadata(q)} method returns a full SDMX structure with references.}
 }
 \value{
 A function with Shiny's \code{input}, \code{output} and \code{session} arguments.

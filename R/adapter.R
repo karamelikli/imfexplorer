@@ -10,7 +10,8 @@
 #' @return A named list of functions: `datasets(agency)` returns normalized
 #'   catalogue metadata; `dimensions(q)` returns normalized dimension metadata;
 #'   `values(q, dimension)` returns normalized available codes; and `data(q)`
-#'   returns an observation data frame for a validated query.
+#'   returns an observation data frame for a validated query. `metadata(q)`
+#'   returns the full SDMX dataflow structure and its references.
 #' @seealso [normalize_datasets()], [normalize_dimensions()],
 #'   [normalize_values()], [data_arguments()]
 #'
@@ -29,6 +30,12 @@ imf_adapter <- function() {
         filters = q$filters[setdiff(names(q$filters), dimension)],
         agency_id = q$agency, version = q$version
       ))
+    },
+    metadata = function(q) {
+      imf.data::sdmx_structure(
+        structure_type = "dataflow", agency_id = q$agency,
+        resource_id = q$dataset, version = q$version, references = "all"
+      )
     },
     data = function(q) {
       out <- do.call(imf.data::get_data, data_arguments(q))

@@ -73,8 +73,8 @@ const WebSocket = require('ws');
   await evaluate("document.querySelector('a[data-value=retrieve]').click(); document.querySelector('#retrieve').click()");
   await wait("document.querySelector('#result_status').innerText.includes('2 returned observations')", 'retrieved fixture data');
   await wait("document.querySelector('#series_plot img')?.getAttribute('src')", 'plot');
-  await wait("document.querySelector('#csv').href.includes('/download/')", 'data downloads');
-  for (const [id,file] of [['csv','/tmp/imfexplorer-data.csv'],['rds','/tmp/imfexplorer-data.rds']]) {
+  await wait("document.querySelector('#excel').href.includes('/download/')", 'data downloads');
+  for (const [id,file] of [['excel','/tmp/imfexplorer-data.xlsx'],['rds','/tmp/imfexplorer-data.rds']]) {
     const result = await evaluate(`(async()=>{const r=await fetch(document.querySelector('#${id}').href);return {ok:r.ok,bytes:Array.from(new Uint8Array(await r.arrayBuffer()))}})()`);
     if(!result.ok) throw new Error('Download failed: '+id);
     fs.writeFileSync(file,Buffer.from(result.bytes));

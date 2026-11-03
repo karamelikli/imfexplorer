@@ -70,7 +70,7 @@ Choose **All periods**, a **Period range**, or **Latest N per series**, then rev
 
 Optionally enable **Exclude unavailable or unverified selections before retrieval** to remove flagged codes and recheck the remaining query. Excluded codes are listed with the retrieval status. If a dimension has no verified selected codes left, select an available value or explicitly clear it before continuing. Metadata request failures still require a successful retry.
 
-Click **Retrieve data** to download observations. Browse the table, view a time-series plot when supported, and download **CSV** or **RDS** below the table.
+Click **Retrieve data** to download observations. Browse the table, view a time-series plot when supported, and download **Excel** or **RDS** below the table.
 
 ![Retrieved monthly CPI observations, download controls and time-series plot](man/figures/README-results.png)
 
@@ -80,7 +80,17 @@ Click **Retrieve data** to download observations. Browse the table, view a time-
 
 - **R script:** download runnable code from the Review tab.
 - **Query JSON:** save your selections and restore them later with **Restore query JSON** in the sidebar.
-- **CSV / RDS:** export the retrieved observations from Retrieve & export.
+- **Excel:** export observations to the **Data** sheet, with **Metadata**, **Dimensions**, **Codes** and **Structure** sheets. Metadata include the exact query, dataset/version, retrieval time and code labels. Full SDMX structural metadata are included when available.
+- **RDS:** export the same observations as a data frame with metadata attached. Read them in R with:
+
+```r
+data <- readRDS("imf-data.rds")
+metadata <- attr(data, "imf_metadata")
+metadata$query
+metadata$dataset
+```
+
+Metadata are captured with the result. If the full structural metadata request fails, exports still contain the available catalogue and dimension metadata, together with the failure message.
 
 Selections remain editable. If you change a query after retrieval, existing results are marked **EARLIER QUERY** until you retrieve again. **Clear current query** starts a new selection.
 
