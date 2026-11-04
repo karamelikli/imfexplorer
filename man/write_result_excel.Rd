@@ -15,9 +15,8 @@ write_result_excel(data, file)
 The path returned by \code{\link[writexl:write_xlsx]{writexl::write_xlsx()}}, invisibly.
 }
 \description{
-Export the immutable result snapshot to Data, Metadata, Dimensions, Codes and
-Structure sheets, plus a Metadata_Report sheet from \code{sdmx_metadata()}.
-Report Excel size limits explicitly; the RDS export retains
+Export the immutable result snapshot to Data, Metadata, Variables and Codes
+sheets. Report Excel size limits explicitly; the RDS export retains
 data without those worksheet limits.
 }
 \keyword{internal}

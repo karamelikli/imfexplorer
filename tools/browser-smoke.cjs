@@ -70,14 +70,10 @@ const WebSocket = require('ws');
     fs.writeFileSync(file,result.text);
   }
 
-  await evaluate("document.querySelector('a[data-value=retrieve]').click(); document.querySelector('#load_metadata_reports').click()");
-  await wait("document.querySelector('#metadata_report_status').innerText.includes('1 metadata reports')", 'metadata report catalogue');
-  await evaluate("document.querySelector('#metadata_report').selectize.onSearchChange('A_REPORT')");
-  await wait("Object.values(document.querySelector('#metadata_report').selectize.options).some(x=>x.label.includes('A_REPORT'))", 'searchable metadata report');
-  await evaluate("const s=document.querySelector('#metadata_report').selectize; s.setValue(Object.values(s.options).find(x=>x.label.includes('A_REPORT')).value)");
-  await evaluate("document.querySelector('#retrieve').click()");
+  await evaluate("document.querySelector('a[data-value=retrieve]').click(); document.querySelector('#retrieve').click()");
   await wait("document.querySelector('#result_status').innerText.includes('2 returned observations')", 'retrieved fixture data');
-  await wait("document.querySelector('#result_status').innerText.includes('Metadata report included: TEST A_REPORT 9')", 'metadata report retrieved');
+  if(!await evaluate("['exclude_unavailable','broad_ok'].every(id=>{const e=document.getElementById(id);const box=e.closest('.shiny-input-container');const label=e.closest('label').querySelector('span');const p=getComputedStyle(box.parentElement);return box.getBoundingClientRect().width>=box.parentElement.clientWidth-parseFloat(p.paddingLeft)-parseFloat(p.paddingRight)-2 && label.getBoundingClientRect().height<=parseFloat(getComputedStyle(label).lineHeight)*1.5})")) throw new Error('Retrieval checkboxes should fill the row and fit on one line at desktop width');
+
   await wait("document.querySelector('#series_plot img')?.getAttribute('src')", 'plot');
   await wait("document.querySelector('#excel').href.includes('/download/')", 'data downloads');
   for (const [id,file] of [['excel','/tmp/imfexplorer-data.xlsx'],['rds','/tmp/imfexplorer-data.rds']]) {

@@ -12,9 +12,6 @@ catalogue metadata; \code{dimensions(q)} returns normalized dimension metadata;
 \code{values(q, dimension)} returns normalized available codes; and \code{data(q)}
 returns an observation data frame for a validated query. \code{structure(q)}
 returns the full SDMX dataflow structure and its references.
-\code{metadata_catalogue()} lists metadata-report identities, independently of
-dataflow versions; \code{metadata(report)} retrieves one full metadata report.
-A report is a one-row frame with \code{agency}, \code{id} and \code{version} columns.
 }
 \description{
 Construct the upstream API boundary without making network requests.

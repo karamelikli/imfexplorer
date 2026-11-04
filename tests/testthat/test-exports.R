@@ -9,9 +9,9 @@ test_that("Excel and RDS exports preserve observations and the metadata snapshot
     c("REGION", "METRIC")
   )
   structure <- list(data = list(dataflows = list(list(id = "A", description = "Synthetic metadata"))))
-  attr(data, "imf_metadata") <- result_metadata(data, q, f$api$datasets("TEST")[1, ], dims, values,
+  data <- annotate_result(data, result_metadata(data, q, f$api$datasets("TEST")[1, ], dims, values,
     structure = structure, excluded = "REGION: missing"
-  )
+  ))
   meta <- attr(data, "imf_metadata")
   expect_identical(meta$dimension_values$REGION$code, "X")
   expect_identical(meta$dimension_values$REGION$name, "Label X")
@@ -27,19 +27,19 @@ test_that("Excel and RDS exports preserve observations and the metadata snapshot
   write_result_excel(data, xlsx)
   expect_identical(
     readxl::excel_sheets(xlsx),
-    c("Data", "Metadata", "Dimensions", "Codes", "Structure", "Metadata_Report")
+    c("Data", "Metadata", "Variables", "Codes")
   )
   observations <- readxl::read_xlsx(xlsx, sheet = "Data")
-  expect_identical(observations$OBS_VALUE, data$OBS_VALUE)
-  expect_identical(observations$TIME_PERIOD, data$TIME_PERIOD)
+  expect_identical(observations$OBS_VALUE, as.vector(data$OBS_VALUE))
+  expect_identical(observations$TIME_PERIOD, as.vector(data$TIME_PERIOD))
   metadata <- readxl::read_xlsx(xlsx, sheet = "Metadata")
   expect_identical(metadata$value[metadata$path == "query/version"], "1")
   expect_identical(metadata$value[metadata$path == "excluded_selections"], "REGION: missing")
   codes <- readxl::read_xlsx(xlsx, sheet = "Codes")
-  expect_identical(codes$name[codes$dimension == "REGION"], "Label X")
-  expect_identical(readxl::read_xlsx(xlsx, sheet = "Dimensions")$id, dims$id)
-  full <- readxl::read_xlsx(xlsx, sheet = "Structure")
-  expect_true("Synthetic metadata" %in% full$value)
+  expect_identical(codes$name[codes$variable == "REGION"], "Label X")
+  expect_identical(readxl::read_xlsx(xlsx, sheet = "Variables")$variable, names(data))
+  expect_identical(attr(restored$REGION, "code_labels"), c(X = "Label X"))
+  expect_identical(attr(restored$REGION, "description"), "REGION")
   expect_identical(attr(data, "imf_metadata"), meta)
   attr(data, "imf_metadata") <- NULL
   expect_error(write_result_excel(data, xlsx), "no metadata snapshot")
@@ -107,7 +107,10 @@ test_that("long metadata strings are lossless and observation limits are explici
   f <- fixture_api()
   q <- new_query("TEST", "A", "1")
   data <- f$api$data(q)[FALSE, ]
-  attr(data, "imf_metadata") <- result_metadata(data, q, f$api$datasets("TEST")[1, ], f$api$dimensions(q), list())
+  attr(data, "imf_metadata") <- result_metadata(
+    data, q, f$api$datasets("TEST")[1, ], f$api$dimensions(q),
+    list(REGION = normalize_values(data.frame(code = "X", name = "Known region")))
+  )
   file <- tempfile(fileext = ".xlsx")
   on.exit(unlink(file))
   expect_no_error(write_result_excel(data, file))

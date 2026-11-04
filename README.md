@@ -74,13 +74,13 @@ Click **Retrieve data** to download observations. Browse the table, view a time-
 
 ![Retrieved monthly CPI observations, download controls and time-series plot](man/figures/README-results.png)
 
-*Screenshots captured on 3 November 2026 using live IMF CPI data: USA, monthly frequency, latest 12 observations. Available datasets, versions and observations can change.*
+*Screenshots captured on 4 November 2026 using live IMF CPI data: USA, monthly frequency, latest 12 observations. Available datasets, versions and observations can change.*
 
 ## Save and reuse a query
 
 - **R script:** download runnable code from the Review tab.
 - **Query JSON:** save your selections and restore them later with **Restore query JSON** in the sidebar.
-- **Excel:** export observations to the **Data** sheet, with **Metadata**, **Dimensions**, **Codes**, **Structure** and **Metadata_Report** sheets. Metadata include the exact query, dataset/version, retrieval time and code labels. Full SDMX structural metadata and reports from `imf.data::sdmx_metadata()` are included when available.
+- **Excel:** export observations to the **Data** sheet, with **Metadata**, **Variables** and **Codes** sheets. Metadata include the exact query, dataset/version, retrieval time and code labels. The **Variables** sheet describes each column, and **Codes** defines values such as `G001: World` and `NSA: Not seasonally adjusted (NSA)` using IMF's original labels.
 - **RDS:** export the same observations as a data frame with metadata attached. Read them in R with:
 
 ```r
@@ -88,13 +88,14 @@ data <- readRDS("imf-data.rds")
 metadata <- attr(data, "imf_metadata")
 metadata$query
 metadata$dataset
-metadata$report # Full sdmx_metadata() response
-metadata$report_request # Report provider, ID, version and selection method
+attr(data[["COUNTRY"]], "label") # Variable label, when COUNTRY is present
+attr(data[["COUNTRY"]], "description") # Variable description
+attr(data[["COUNTRY"]], "code_labels") # Named vector: code -> label
 ```
 
-Metadata reports have their own IDs and versions. In **Retrieve & export**, leave **Metadata report** on automatic to look for an exact dataset ID match, or click **Load metadata reports** and search for a report to select explicitly. The export records that report's identity separately from the dataflow identity. A missing or ambiguous match is reported; the app does not attach an unrelated report automatically.
+Each RDS column carries a `label` and `description`. Coded columns also carry named `code_labels` and `code_descriptions` vectors. Original values and column types are preserved. Missing descriptions remain explicit; labels are taken from available values and the dataset's concepts and codelists.
 
-Metadata are captured with the result. If a report is unavailable or a metadata request fails, exports still contain the available catalogue and dimension metadata, together with the failure message.
+Metadata are captured with the result. If additional variable definitions cannot be loaded, exports retain the available descriptions and labels, together with the failure message.
 
 Selections remain editable. If you change a query after retrieval, existing results are marked **EARLIER QUERY** until you retrieve again. **Clear current query** starts a new selection.
 

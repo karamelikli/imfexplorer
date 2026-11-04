@@ -2,14 +2,6 @@
 pkgload::load_all(".", quiet = TRUE)
 source("tests/testthat/helper-fixtures.R")
 api <- fixture_api()$api
-api$metadata_catalogue <- function() {
-  normalize_datasets(data.frame(agency = "TEST", id = "A_REPORT", version = "9", name = "Synthetic methodology"))
-}
-api$metadata <- function(report) {
-  list(data = list(metadataSets = list(list(
-    id = report$id[[1]], version = report$version[[1]], description = "SYNTHETIC metadata report"
-  ))))
-}
 # Optional larger synthetic result for checking table/export layout.
 rows <- as.integer(Sys.getenv("IMFEXPLORER_SMOKE_ROWS", "2"))
 if (!is.na(rows) && rows > 2L) {

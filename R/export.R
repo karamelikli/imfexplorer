@@ -12,37 +12,22 @@
 #' @param structure Optional raw SDMX structure response with references.
 #' @param structure_error Optional explanation for missing structural metadata.
 #' @param excluded Character vector describing excluded selections.
-#' @param report Optional full response from [imf.data::sdmx_metadata()].
-#' @param report_request Report identity and selection method, or NULL.
-#' @param report_error Optional explanation for an unavailable metadata report.
 #' @return A metadata list suitable for the `imf_metadata` data-frame attribute.
 #' @keywords internal
 result_metadata <- function(data, q, dataset, dimensions, values, structure = NULL,
-                            structure_error = NULL, excluded = character(), report = NULL,
-                            report_request = NULL, report_error = NULL) {
-  codes <- lapply(intersect(dimensions$id[!dimensions$is_time], names(data)), function(dim) {
-    observed <- unique(as.character(data[[dim]]))
-    observed <- observed[!is.na(observed)]
-    v <- values[[dim]]
-    if (is.null(v)) v <- normalize_values(data.frame(code = character()))
-    labels <- v[match(observed, v$code), , drop = FALSE]
-    labels$code <- observed
-    rownames(labels) <- NULL
-    labels
-  })
-  names(codes) <- intersect(dimensions$id[!dimensions$is_time], names(data))
+                            structure_error = NULL, excluded = character()) {
+  info <- variable_metadata(data, q, dimensions, values, structure)
   list(
-    schema_version = 1L,
+    schema_version = 2L,
     retrieved_at_utc = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"),
     source = "IMF SDMX API via imf.data",
     imfexplorer_version = as.character(utils::packageVersion("imfexplorer")),
     imf_data_version = as.character(utils::packageVersion("imf.data")),
     query = q, dataset = dataset, excluded_selections = excluded,
-    dimensions = dimensions, dimension_values = codes,
+    dimensions = dimensions, variables = info$variables, column_values = info$codes,
+    dimension_values = info$codes[intersect(names(info$codes), dimensions$id)],
     structure_status = if (is.null(structure)) "unavailable" else "available",
-    structure_error = structure_error, structure = structure,
-    report_status = if (is.null(report)) "unavailable" else "available",
-    report_request = report_request, report_error = report_error, report = report
+    structure_error = structure_error, structure = structure
   )
 }
 
@@ -111,9 +96,8 @@ excel_frame <- function(data) {
 
 #' Write observations and their metadata to an Excel workbook
 #'
-#' Export the immutable result snapshot to Data, Metadata, Dimensions, Codes and
-#' Structure sheets, plus a Metadata_Report sheet from `sdmx_metadata()`.
-#' Report Excel size limits explicitly; the RDS export retains
+#' Export the immutable result snapshot to Data, Metadata, Variables and Codes
+#' sheets. Report Excel size limits explicitly; the RDS export retains
 #' data without those worksheet limits.
 #'
 #' @param data Retrieved observation data frame with an `imf_metadata` attribute.
@@ -123,20 +107,29 @@ excel_frame <- function(data) {
 write_result_excel <- function(data, file) {
   meta <- attr(data, "imf_metadata", exact = TRUE)
   if (is.null(meta)) stop("This result has no metadata snapshot. Retrieve it again before exporting.")
-  code_rows <- lapply(names(meta$dimension_values), function(dim) {
-    v <- meta$dimension_values[[dim]]
-    data.frame(dimension = rep(dim, nrow(v)), v[c("code", "name", "description")], stringsAsFactors = FALSE)
+  code_rows <- lapply(names(meta$column_values), function(dim) {
+    v <- meta$column_values[[dim]]
+    label <- v$name
+    label[is.na(label) | !nzchar(label)] <- "(description unavailable)"
+    data.frame(
+      variable = rep(dim, nrow(v)), v[c("code", "name", "description")],
+      definition = if (nrow(v)) paste0(v$code, ": ", label) else character(), stringsAsFactors = FALSE
+    )
   })
   codes <- if (length(code_rows)) {
     do.call(rbind, code_rows)
   } else {
-    data.frame(dimension = character(), code = character(), name = character(), description = character())
+    data.frame(
+      variable = character(), code = character(), name = character(),
+      description = character(), definition = character()
+    )
   }
   sheets <- list(
     Data = excel_frame(data),
-    Metadata = metadata_table(meta[setdiff(names(meta), c("dimensions", "dimension_values", "structure", "report"))]),
-    Dimensions = excel_frame(meta$dimensions), Codes = codes,
-    Structure = metadata_table(meta$structure), Metadata_Report = metadata_table(meta$report)
+    Metadata = metadata_table(meta[setdiff(names(meta), c(
+      "dimensions", "dimension_values", "column_values", "variables", "structure"
+    ))]),
+    Variables = excel_frame(meta$variables), Codes = codes
   )
   for (name in names(sheets)) {
     sheet <- sheets[[name]]

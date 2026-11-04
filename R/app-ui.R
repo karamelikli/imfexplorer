@@ -120,18 +120,9 @@ explorer_ui <- function(agency_id) {
       ),
       bslib::nav_panel("5 \u00b7 Retrieve & export",
         value = "retrieve",
-        shiny::selectizeInput("metadata_report", "Metadata report",
-          choices = c("Automatic dataset ID match" = ""),
-          width = "100%", options = list(placeholder = "Search report IDs or names")
-        ),
-        shiny::actionButton("load_metadata_reports", "Load metadata reports", class = "btn-outline-secondary"),
-        shiny::helpText(paste(
-          "Reports use their own IDs, providers and versions. Automatic matching uses the dataset ID.",
-          "Load the report catalogue to choose a different report explicitly."
-        )),
-        shiny::uiOutput("metadata_report_status"),
         shiny::checkboxInput(
-          "exclude_unavailable", "Exclude unavailable or unverified selections before retrieval", FALSE
+          "exclude_unavailable", "Exclude unavailable or unverified selections before retrieval", FALSE,
+          width = "100%"
         ),
         shiny::helpText(paste(
           "Remaining codes are checked again before retrieval. Excluded codes are reported below.",
@@ -139,7 +130,9 @@ explorer_ui <- function(agency_id) {
           "Availability request failures must be resolved before retrieval."
         )),
         shiny::uiOutput("breadth"),
-        shiny::checkboxInput("broad_ok", "I understand this may request many series / observations", FALSE),
+        shiny::checkboxInput("broad_ok", "I understand this may request many series / observations", FALSE,
+          width = "100%"
+        ),
         shiny::actionButton("retrieve", "Retrieve data", class = "btn-primary"),
         shiny::tags$div(
           class = "imf-results-layout",
@@ -154,7 +147,7 @@ explorer_ui <- function(agency_id) {
             ),
             shiny::helpText(paste(
               "Excel/RDS include the displayed result and its metadata, including when marked as an earlier query.",
-              "Excel uses separate metadata sheets. RDS stores metadata in the imf_metadata attribute.",
+              "Excel uses separate metadata sheets. RDS stores variable descriptions and code labels on each column.",
               "The script and JSON describe the current query."
             ))
           ),
