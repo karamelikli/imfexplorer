@@ -48,6 +48,20 @@ imfexplorer::imfexplorer()
 
 The app opens with agency `IMF.STA`. To use another agency, pass its ID with `agency_id` when launching.
 
+The default launch occupies the console until you stop the app. To keep using the same R console, including in RStudio, opt into a background process after installing the package:
+
+```r
+install.packages("callr") # Only needed once for background mode
+app <- imfexplorer::imfexplorer(background = TRUE, launch.browser = TRUE)
+print(1 + 1) # Run other commands while the app is open
+app$url # Local URL; open manually with launch.browser = FALSE
+app$is_alive() # TRUE while the app is running
+app$stop() # Stop the server when finished
+app$is_alive() # FALSE
+```
+
+Background mode returns once the local server is ready. Keep `app` while using it. The child stops when the parent R session exits or restarts; closing the browser tab alone does not stop it. It uses the same R library paths as the parent, including custom libraries. Startup failures stop the child and report diagnostics and log paths. While the handle is available, inspect logs with `readLines(app$logs$stderr)` or `readLines(app$logs$stdout)`. Logs are stored in the parent session's temporary directory.
+
 ## A quick tour
 
 ### 1. Find a dataset
