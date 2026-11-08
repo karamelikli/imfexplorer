@@ -40,27 +40,64 @@ For a local source checkout with automatic dependency installation, use `remotes
 
 ### Launch
 
-After installing by any of these methods, open the app with:
+The exported launcher has this signature; the argument order preserves existing positional calls:
+
+```r
+imfexplorer(
+  agency_id = "IMF.STA",
+  launch.browser = interactive(),
+  background = FALSE
+)
+```
+
+| Argument | Accepted values | Default | Effect |
+| --- | --- | --- | --- |
+| `agency_id` | One non-missing, nonempty character string containing a supported IMF SDMX maintainer ID; `"*"` selects all maintainers. | `"IMF.STA"` | Selects the publishing agency whose dataset catalogue is loaded. `"IMF.STA"` identifies the IMF Statistics Department. This selects a catalogue, not a country or region within a dataset. |
+| `launch.browser` | One non-missing logical value: `TRUE` or `FALSE`. | `interactive()` | `TRUE` opens the app in a browser; `FALSE` leaves it running without opening a browser. The default is `TRUE` in an interactive R session, including the RStudio console, and `FALSE` in a non-interactive script. This controls browser opening, not whether the console is blocked. |
+| `background` | One non-missing logical value: `TRUE` or `FALSE`. | `FALSE` | `FALSE` runs Shiny in the current R process and occupies the console until the app stops. `TRUE` starts a separate supervised process, waits for the local server to be ready, then returns a handle so you can continue using the same console. Background mode requires an installed package and the optional `callr` dependency. |
+
+For the default blocking launch after installation:
 
 ```r
 imfexplorer::imfexplorer()
 ```
 
-The app opens with agency `IMF.STA`. To use another agency, pass its ID with `agency_id` when launching.
+To launch without automatically opening a browser:
 
-The default launch occupies the console until you stop the app. To keep using the same R console, including in RStudio, opt into a background process after installing the package:
+```r
+imfexplorer::imfexplorer(launch.browser = FALSE)
+```
+
+For a blocking launch, copy the URL in Shiny's `Listening on ...` console message into your browser. The console remains occupied until you stop the app, for example with Ctrl+C in a terminal or the Stop button in RStudio. The launcher returns the result of `shiny::runApp()` invisibly after the app exits.
+
+To find other supported maintainer IDs, inspect the `agency` column of the IMF catalogue and pass an ID from it as `agency_id`:
+
+```r
+catalogue <- imf.data::list_datasets("*")
+sort(unique(catalogue$agency))
+other_ids <- setdiff(unique(catalogue$agency), "IMF.STA")
+if (length(other_ids) > 0L) {
+  imfexplorer::imfexplorer(agency_id = other_ids[[1]])
+}
+```
+
+To keep using the same R console, including in RStudio, opt into background mode:
 
 ```r
 install.packages("callr") # Only needed once for background mode
 app <- imfexplorer::imfexplorer(background = TRUE, launch.browser = TRUE)
-print(1 + 1) # Run other commands while the app is open
-app$url # Local URL; open manually with launch.browser = FALSE
-app$is_alive() # TRUE while the app is running
-app$stop() # Stop the server when finished
+print(1 + 1) # Run another command while the app is open
+app$url # Local URL of the running app
+app$is_alive() # TRUE while the server is running
+app$stop() # Stop the background server when finished
 app$is_alive() # FALSE
 ```
 
-Background mode returns once the local server is ready. Keep `app` while using it. The child stops when the parent R session exits or restarts; closing the browser tab alone does not stop it. It uses the same R library paths as the parent, including custom libraries. Startup failures stop the child and report diagnostics and log paths. While the handle is available, inspect logs with `readLines(app$logs$stderr)` or `readLines(app$logs$stdout)`. Logs are stored in the parent session's temporary directory.
+Background mode returns an `imfexplorer_process` handle invisibly once the server is ready. Use `app$url` to access the app manually if you set `launch.browser = FALSE`; when `TRUE`, the parent session opens the browser only after readiness. The handle also exposes the underlying `callr` process as `app$process`. Calling `app$stop()` again is safe.
+
+Keep `app` while using the server: its process may be cleaned up when the handle is garbage-collected. The supervised child stops when the parent R session exits or restarts. Closing a browser tab alone does not stop it. The child uses the parent's R library paths, including custom libraries.
+
+Startup is checked for at most 30 seconds, plus a bounded local HTTP probe. A failed launch stops the child and reports diagnostics and log paths. Logs are retained in the parent session's temporary directory; inspect them with `readLines(app$logs$stderr)` or `readLines(app$logs$stdout)`. The optional `callr` package is needed only for background mode; default blocking launches do not require it.
 
 ## A quick tour
 
@@ -120,7 +157,7 @@ Selections remain editable. If you change a query after retrieval, existing resu
 - If a plot is unsuitable, the data table and downloads remain available.
 - After updating the package, stop the old app and restart R before launching again.
 
-For source installation, package structure and development checks, see [CONTRIBUTING.md](CONTRIBUTING.md).
+For source installation, use the GitHub or local archive methods described above.
 
 ## License
 

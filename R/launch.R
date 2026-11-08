@@ -5,8 +5,17 @@
 #' caches and query state are isolated to each Shiny session. Loading the package
 #' does not start Shiny or access the network.
 #'
-#' @param agency_id IMF maintainer ID. Defaults to `"IMF.STA"`.
-#' @param launch.browser Whether Shiny should open the application in a browser.
+#' @param agency_id One non-missing, nonempty character string selecting the
+#'   IMF SDMX maintainer (publishing agency) whose dataset catalogue is loaded.
+#'   Defaults to `"IMF.STA"`, the IMF Statistics Department. This is not a country
+#'   filter. Inspect the `agency` column of `imf.data::list_datasets("*")` for
+#'   supported IDs; `"*"` requests all maintainers.
+#' @param launch.browser One non-missing logical value. `TRUE` opens a browser;
+#'   `FALSE` leaves the server running without opening one. Defaults to
+#'   `interactive()`: TRUE in an interactive R or RStudio console and FALSE in a
+#'   non-interactive script. For a blocking launch, open the URL printed in
+#'   Shiny's `Listening on ...` message manually; in background mode use
+#'   `app$url`. This argument controls browser opening, not console blocking.
 #' @param background Whether to run the app in a separate R process and return
 #'   control to the console once the server is ready. Defaults to `FALSE`.
 #'   Requires the optional \pkg{callr} package and an installed copy of

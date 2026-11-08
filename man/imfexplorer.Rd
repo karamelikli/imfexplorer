@@ -11,9 +11,18 @@ imfexplorer(
 )
 }
 \arguments{
-\item{agency_id}{IMF maintainer ID. Defaults to \code{"IMF.STA"}.}
+\item{agency_id}{One non-missing, nonempty character string selecting the
+IMF SDMX maintainer (publishing agency) whose dataset catalogue is loaded.
+Defaults to \code{"IMF.STA"}, the IMF Statistics Department. This is not a country
+filter. Inspect the \code{agency} column of \code{imf.data::list_datasets("*")} for
+supported IDs; \code{"*"} requests all maintainers.}
 
-\item{launch.browser}{Whether Shiny should open the application in a browser.}
+\item{launch.browser}{One non-missing logical value. \code{TRUE} opens a browser;
+\code{FALSE} leaves the server running without opening one. Defaults to
+\code{interactive()}: TRUE in an interactive R or RStudio console and FALSE in a
+non-interactive script. For a blocking launch, open the URL printed in
+Shiny's \verb{Listening on ...} message manually; in background mode use
+\code{app$url}. This argument controls browser opening, not console blocking.}
 
 \item{background}{Whether to run the app in a separate R process and return
 control to the console once the server is ready. Defaults to \code{FALSE}.

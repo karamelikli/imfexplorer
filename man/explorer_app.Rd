@@ -7,7 +7,11 @@
 explorer_app(agency_id = "IMF.STA", api = imf_adapter())
 }
 \arguments{
-\item{agency_id}{IMF maintainer ID. Defaults to \code{"IMF.STA"}.}
+\item{agency_id}{One non-missing, nonempty character string selecting the
+IMF SDMX maintainer (publishing agency) whose dataset catalogue is loaded.
+Defaults to \code{"IMF.STA"}, the IMF Statistics Department. This is not a country
+filter. Inspect the \code{agency} column of \code{imf.data::list_datasets("*")} for
+supported IDs; \code{"*"} requests all maintainers.}
 
 \item{api}{An injectable adapter list with the methods described in
 \code{\link[=imf_adapter]{imf_adapter()}}. Defaults to the live IMF adapter.}
